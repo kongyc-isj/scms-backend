@@ -37,6 +37,10 @@ Route::middleware('api')->group(function () {
     Route::put('/boards/{id}', [BoardController::class, 'update']);
     Route::delete('/boards/{id}', [BoardController::class, 'destroy']);
 
+    Route::get('/boards/get_share_user/{id}', [BoardController::class, 'get_share_user']);
+    Route::put('/boards/update_share_user/{id}', [BoardController::class, 'update_share_user']);
+    Route::delete('/boards/delete_share_user/{id}', [BoardController::class, 'delete_share_user']);
+
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

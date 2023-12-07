@@ -109,4 +109,96 @@ class BoardController extends Controller
 
         return response()->json(['message' => 'Board deleted successfully']);
     }
+
+    public function get_share_user($id)
+    {
+        $space = Space::find($id);
+
+        if (!$space) {
+            return response()->json(['message' => 'Space not found'], 404);
+        }
+
+        $shareUsers = $space['space_shared_user'];
+
+        return response()->json(['share_users' => $shareUsers], 200);
+    }
+    
+    public function update_share_user(Request $request, $id)
+    {
+        $request->validate([
+            'board_owner_user.board_owner_email' => 'required|email',
+            'new_space_shared_user_emails.*' => 'required|email',
+        ]);
+
+        $space = Space::find($id);
+
+        if (!$space) {
+            return response()->json(['message' => 'Space not found'], 404);
+        }
+
+        // Check if the provided email matches the space_owner_user_email
+        if ($request->input('space_owner_user.space_owner_user_email') !== $space['space_owner_user']['space_owner_user_email']) {
+            return response()->json(['message' => 'Email does not match space owner email'], 422);
+        }
+
+        // Extract the new_space_shared_user_emails array from the request
+        $newSpaceSharedUserEmails = $request->input('new_space_shared_user_emails');
+
+        // Remove duplicates from the new_space_shared_user_emails array
+        $uniqueEmails = array_unique($newSpaceSharedUserEmails);
+
+        // Check for existing emails in the space_shared_user array
+        $existingEmails = array_column($space['space_shared_user'], 'space_shared_user_email');
+        $duplicates = array_intersect($uniqueEmails, $existingEmails);
+
+        // If duplicates exist, return a response with the duplicated emails
+        if (!empty($duplicates)) {
+            return response()->json(['message' => 'Duplicate emails found', 'duplicates' => $duplicates], 422);
+        }
+
+        // Push each new unique space_shared_user_email into the space_shared_user array
+        foreach ($uniqueEmails as $newSpaceSharedUserEmail) {
+            $space->push('space_shared_user', ['space_shared_user_email' => $newSpaceSharedUserEmail]);
+        }
+
+        return response()->json(['message' => 'Space share user insert successfully']);
+    }
+
+    public function delete_share_user(Request $request, $id)
+    {
+        $request->validate([
+            'space_owner_user.space_owner_user_email' => 'required|email',
+            'space_shared_user_email' => 'required|email',
+        ]);
+
+        $space = Space::find($id);
+
+        if (!$space) {
+            return response()->json(['message' => 'Space not found'], 404);
+        }
+
+        // Check if the provided email matches the space_owner_user_email
+        if ($request->input('space_owner_user.space_owner_user_email') !== $space['space_owner_user']['space_owner_user_email']) {
+            return response()->json(['message' => 'Email does not match space owner email'], 422);
+        }
+
+        $spaceSharedUserEmail = $request->input('space_shared_user_email');
+
+        // Check if the provided space_shared_user_email exists in the array
+        $existingEmails = array_column($space['space_shared_user'], 'space_shared_user_email');
+
+        if (!in_array($spaceSharedUserEmail, $existingEmails)) {
+            return response()->json(['message' => 'Space shared user email not found in the array'], 422);
+        }
+
+        // Remove the specified space_shared_user_email from the array
+        $space['space_shared_user'] = array_values(array_filter($space['space_shared_user'], function ($user) use ($spaceSharedUserEmail) {
+            return $user['space_shared_user_email'] !== $spaceSharedUserEmail;
+        }));
+
+        // Save the updated space document
+        $space->save();
+
+        return response()->json(['message' => 'Space shared user deleted successfully']);
+    }
 }
