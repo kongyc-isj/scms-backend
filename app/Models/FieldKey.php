@@ -11,7 +11,7 @@ class FieldKey extends Model
 
     protected $fillable = [
         'component_id',
-        'field_type_id',
+        'field_type_name',
         'field_key_name',
         'field_key_description',
         'created_at',

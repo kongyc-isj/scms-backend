@@ -13,6 +13,7 @@ class Board extends Model
         'space_id',
         'board_name',
         'board_description',
+        'board_default_language_code',
         'board_api_key',
         'board_owner_user',
         'board_shared_user',

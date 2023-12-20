@@ -19,7 +19,7 @@ class FieldKeySeeder extends Seeder
         $field_key = [
             [
                 'component_id' => '6557029be0d2937b08fb7d83',
-                'field_type_id' => '6557029be0d2937b08fb7d82',
+                'field_type_name' => '6557029be0d2937b08fb7d82',
                 'field_key_name' => 'landing_index_username',
                 'field_key_description' => 'go888king landing page username field',
                 'created_at' => '2023-11-07 04:02:44',
@@ -28,7 +28,7 @@ class FieldKeySeeder extends Seeder
             ],
             [
                 'component_id' => '6557029be0d2937b08fb7d83',
-                'field_type_id' => '6557029be0d2937b08fb7d82',
+                'field_type_name' => '6557029be0d2937b08fb7d82',
                 'field_key_name' => 'landing_index_password',
                 'field_key_description' => 'go888king landing page password field',
                 'created_at' => '2023-11-07 04:02:44',
@@ -37,7 +37,7 @@ class FieldKeySeeder extends Seeder
             ],
             [
                 'component_id' => '6557029be0d2937b08fb7d83',
-                'field_type_id' => '6557029be0d2937b08fb7d82',
+                'field_type_name' => '6557029be0d2937b08fb7d82',
                 'field_key_name' => 'landing_index_login',
                 'field_key_description' => 'go888king landing page login button',
                 'created_at' => '2023-11-07 04:02:44',
@@ -46,7 +46,7 @@ class FieldKeySeeder extends Seeder
             ],
             [
                 'component_id' => '6557029be0d2937b08fb7d83',
-                'field_type_id' => '6557029be0d2937b08fb7d82',
+                'field_type_name' => '6557029be0d2937b08fb7d82',
                 'field_key_name' => 'landing_index_demo',
                 'field_key_description' => 'go888king landing page demo button',
                 'created_at' => '2023-11-07 04:02:44',
@@ -55,7 +55,7 @@ class FieldKeySeeder extends Seeder
             ],
             [
                 'component_id' => '6557029be0d2937b08fb7d83',
-                'field_type_id' => '6557029be0d2937b08fb7d82',
+                'field_type_name' => '6557029be0d2937b08fb7d82',
                 'field_key_name' => 'landing_index_error_msg',
                 'field_key_description' => 'go888king landing page login error message',
                 'created_at' => '2023-11-07 04:02:44',

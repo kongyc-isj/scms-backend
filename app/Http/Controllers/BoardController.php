@@ -6,199 +6,413 @@ use Illuminate\Http\Request;
 use Jenssegers\Mongodb\Eloquent\Model;
 use Carbon\Carbon;
 use App\Models\Board;
+use App\Models\Language;
 use Ramsey\Uuid\Uuid;
 
 class BoardController extends Controller
 {
     public function index(Request $request)
     {
-        $email = $request->input('email');
+        try
+        {
+            $request->validate([
+                'email' => 'required|email'
+            ]);
 
-        $board = Board::where('board_owner_user.board_owner_email', $email)
-            ->orWhere('board_shared_user.board_shared_user_email', $email)
-            ->get(['_id', 'board_name', 'board_description', 'board_api_key']);
+            $email = $request->input('email');
 
-        if (!$board) {
-            return response()->json(['message' => 'User not found'], 404);
+            $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
+                ->where('deleted_at', null)
+                ->get(['_id', 'board_name', 'board_description', 'board_default_language_code', 'board_api_key']);
+
+            $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
+                ->where('deleted_at', null)
+                ->get(['_id', 'board_name', 'board_description', 'board_default_language_code', 'board_api_key']);
+
+            if (isset($owner_board))
+            {
+                return response()->json(['board' => $owner_board, 'message' => 'Board read successfully'], 200);
+            }
+            elseif (isset($shared_board))
+            {
+                return response()->json(['board' => $shared_board, 'message' => 'Board read successfully'], 200);
+            }
+            else
+            {
+                return response()->json(['board' => [], 'message' => 'No match email with board'], 400);
+            };
         }
-
-        return response()->json(['board' => $board], 200);
+        catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }   
     }
 
-    // Show specific spaces by owner email
+    // Show specific board by owner email
     public function show(Request  $request, $id)
     {
-        $space = Board::find($id)
-        ->get(['_id', 'space_name', 'space_description', 'board_api_key']);
+        try
+        {
+            $request->validate([
+                'email' => 'required|email'
+            ]);
 
-        return response()->json($space);
+            $email = $request->input('email');
+
+            $board = Board::where('_id', $id)
+            ->where('deleted_at', null)
+            ->first();  
+
+            if (!$board) {
+                return response()->json(['message' => 'Board not found'], 404);
+            }      
+
+            $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
+                ->where('_id',$id)
+                ->where('deleted_at', null)
+                ->first(['_id', 'board_name', 'board_description', 'board_default_language_code', 'board_api_key']);
+
+            $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
+                ->where('_id',$id)
+                ->where('deleted_at', null)
+                ->first(['_id', 'board_name', 'board_description', 'board_default_language_code', 'board_api_key']);
+
+            if (isset($owner_board))
+            {
+                return response()->json(['board' => $owner_board, 'message' => 'Board show successfully'], 200);
+            }
+            elseif (isset($shared_board))
+            {
+                return response()->json(['board' => $shared_board, 'message' => 'Board show successfully'], 200);
+            }
+            else
+            {
+                return response()->json(['board' => [], 'message' => 'No match email with board'], 400);
+            }
+        }
+        catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }  
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'space_id' => 'required|string',
-            'board_name' => 'required|string',
-            'board_description' => 'required|string',
-            'board_owner_user.board_owner_email' => 'required|email'
-        ]);
+        try
+        {
+            $request->validate([
+                'space_id'                           => 'required|string',
+                'board_name'                         => 'required|string',
+                'board_description'                  => 'required|string',
+                'board_default_language_code'        => 'required|string',
+                'board_owner_user.board_owner_email' => 'required|email'
+            ]);
 
-        $currentDateTime = Carbon::now()->format('Y-m-d H:i:s');
+            $data     = $request->all();
+            $language = Language::where('language_code', $data['board_default_language_code'])
+                ->where('deleted_at', null)
+                ->first();  
 
-        $data = $request->all();
+            if (!$language) {
+                return response()->json(['message' => 'Language not found'], 404);
+            }      
 
-        $data['board_api_key'] =Uuid::uuid4()->toString();
-        $data['board_owner_user']['board_owner_api_key'] =Uuid::uuid4()->toString();
-        $data['board_shared_user'] = [];
-        $data['created_at'] = $currentDateTime;
-        $data['updated_at'] = null;
-        $data['deleted_at'] = null;
-        
-        logger()->info($data);
+            $data['board_api_key']                           = Uuid::uuid4()->toString();
+            $data['board_owner_user']['board_owner_api_key'] = Uuid::uuid4()->toString();
+            $data['board_shared_user']                       = [];
+            $data['created_at']                              = Carbon::now()->format('Y-m-d H:i:s');
+            $data['updated_at']                              = null;
+            $data['deleted_at']                              = null;
 
-        $board = Board::create($data);
-        logger()->info($board);
+            $board = Board::create($data);
 
-        return response()->json($board, 201);
+            return response()->json(['message' => 'Board created successfully'], 200);
+
+        }
+        catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }   
     }
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'board_name' => 'required|string',
-            'board_description' => 'required|string',
-            'board_owner_user.board_owner_email' => 'required|email',
-        ]);
+        try
+        {
+            $request->validate([
+                'board_name'                         => 'required|string',
+                'board_description'                  => 'required|string',
+                'board_default_language_code'        => 'required|string',
+                'board_owner_user.board_owner_email' => 'required|email'
+            ]);
+        
+            $data  = $request->only(['board_name', 'board_description', 'board_default_language_code']);
+            $board = Board::find($id);
+        
+            if (!$board) {
+                logger()->info($board);
+                return response()->json(['message' => 'Board not found']);
+            }
 
-        $data = $request->only(['board_name', 'board_description']);
-        $board = Board::find($id);
+            $language = Language::where('language_code', $data['board_default_language_code'])
+                ->where('deleted_at', null)
+                ->first();  
 
-        if (!$board) {
-            logger()->info($board);
-            return response()->json(['message' => 'Board not found']);
+            if (!$language) {
+                return response()->json(['message' => 'Language not found'], 404);
+            }      
+
+            // Check if the provided email matches the board_owner_user_email
+            if ($request->input('board_owner_user.board_owner_email') !== $board['board_owner_user']['board_owner_email']) {
+                return response()->json(['message' => 'Email does not match board owner email']);
+            }
+        
+            $board->update($data);
+        
+            return response()->json(['message' => 'Board updated successfully'], 200);
         }
-
-        // Check if the provided email matches the space_owner_user_email
-        if ($request->input('board_owner_user.board_owner_email') !== $board['board_owner_user']['board_owner_email']) {
-            return response()->json(['message' => 'Email does not match space owner email']);
-        }
-
-        $board->update($data);
-
-        return response()->json(['message' => 'Board updated successfully'], 200);
+        catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }   
     }
 
     public function destroy(Request $request, $id)
     {
-        $request->validate([
-            'board_owner_user.board_owner_email' => 'required|email',
-        ]);
+        try
+        {
+            $request->validate([
+                'board_owner_user.board_owner_email' => 'required|email'
+            ]);
 
-        $board = Board::find($id);
+            $board = Board::find($id);
 
-        if (!$board) {
-            return response()->json(['message' => 'Board not found']);
+            if (!$board) {
+                return response()->json(['message' => 'Board not found']);
+            }
+
+            // Check if the provided email matches the board_owner_user_email
+            if ($request->input('email') !== $board['board_owner_user']['board_owner_email']) {
+                return response()->json(['message' => 'Email does not match board owner email']);
+            }
+
+            $data['deleted_at'] = Carbon::now()->format('Y-m-d H:i:s');
+            $board->update($data);
+
+            return response()->json(['message' => 'Board deleted successfully'], 200);
         }
-
-        // Check if the provided email matches the space_owner_user_email
-        if ($request->input('board_owner_user.board_owner_email') !== $board['board_owner_user']['board_owner_email']) {
-            return response()->json(['message' => 'Email does not match space owner email']);
-        }
-
-        $board->delete();
-
-        return response()->json(['message' => 'Board deleted successfully']);
+        catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }   
     }
 
-    public function get_share_user($id)
+    public function get_share_user(Request $request, $id)
     {
-        $space = Space::find($id);
+        try {
+            $request->validate([
+                'board_owner_user.board_owner_email' => 'required|email',
+            ]);
 
-        if (!$space) {
-            return response()->json(['message' => 'Space not found'], 404);
+            $email = $request->input('email');
+
+            $board = Board::find($id);
+
+            if (!$board) {
+                return response()->json(['message' => 'Board not found'], 404);
+            }
+
+            if ($request->input('board_owner_user.board_owner_email') !== $board['board_owner_user']['board_owner_email']) {
+                return response()->json(['message' => 'Email does not match board owner email'], 404);
+            }
+
+            $shareUsers = $board['board_shared_user'];
+
+            return response()->json(['board_share_users' => $shareUsers], 200);
+
+        } catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
         }
-
-        $shareUsers = $space['space_shared_user'];
-
-        return response()->json(['share_users' => $shareUsers], 200);
     }
     
+    public function create_share_user(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'board_owner_user.board_owner_email' => 'required|email',
+                'board_shared_user.board_shared_user_email' => 'required|email',
+                'board_shared_user.board_shared_user_create_access' => 'required|integer',
+                'board_shared_user.board_shared_user_read_access' => 'required|integer',
+                'board_shared_user.board_shared_user_update_access' => 'required|integer',
+                'board_shared_user.board_shared_user_delete_access' => 'required|integer',
+            ]);
+
+            $board = Board::find($id);
+
+            if (!$board) {
+                return response()->json(['message' => 'Board not found'], 404);
+            }
+
+            // Check if the provided email matches the board_owner_email
+            $boardOwnerEmail = $request->input('board_owner_user.board_owner_email');
+            if ($boardOwnerEmail !== $board['board_owner_user']['board_owner_email']) {
+                return response()->json(['message' => 'Email does not match board owner email'], 422);
+            }
+
+            // Extract the single board_shared_user data from the request
+            $userData = $request->input('board_shared_user');
+
+            // Check if the user already exists based on email
+            $existingUserIndex = array_search($userData['board_shared_user_email'], array_column($board['board_shared_user'], 'board_shared_user_email'));
+
+            if ($existingUserIndex !== false) {
+                return response()->json(['message' => 'User with this email already exists'], 422);
+            }
+
+            // Add new user data
+            $boardSharedUsers = $board['board_shared_user'];
+            $boardSharedUsers[] = $userData;
+
+            // Update the board with the modified board_shared_user array
+            $board->update(['board_shared_user' => $boardSharedUsers]);
+
+            return response()->json(['board' => $board, 'message' => 'Board share user created successfully'], 200);
+
+        } catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }
+    }
+
     public function update_share_user(Request $request, $id)
     {
-        $request->validate([
-            'board_owner_user.board_owner_email' => 'required|email',
-            'new_space_shared_user_emails.*' => 'required|email',
-        ]);
+        try {
+            $request->validate([
+                'board_owner_user.board_owner_email' => 'required|email',
+                'board_shared_user.board_shared_user_email' => 'required|email',
+                'board_shared_user.board_shared_user_create_access' => 'required|integer',
+                'board_shared_user.board_shared_user_read_access' => 'required|integer',
+                'board_shared_user.board_shared_user_update_access' => 'required|integer',
+                'board_shared_user.board_shared_user_delete_access' => 'required|integer',
+            ]);
 
-        $space = Space::find($id);
+            $board = Board::find($id);
 
-        if (!$space) {
-            return response()->json(['message' => 'Space not found'], 404);
+            if (!$board) {
+                return response()->json(['message' => 'Board not found'], 404);
+            }
+
+            // Check if the provided email matches the board_owner_email
+            $boardOwnerEmail = $request->input('board_owner_user.board_owner_email');
+            if ($boardOwnerEmail !== $board['board_owner_user']['board_owner_email']) {
+                return response()->json(['message' => 'Email does not match board owner email'], 422);
+            }
+
+            // Extract the single board_shared_user data from the request
+            $userData = $request->input('board_shared_user');
+
+            // Find the index of the matching shared user based on email
+            $index = array_search($userData['board_shared_user_email'], array_column($board['board_shared_user'], 'board_shared_user_email'));
+
+            if ($index !== false) {
+                // Update existing user data
+                $boardSharedUsers = $board['board_shared_user'];
+                $boardSharedUsers[$index] = $userData;
+
+                // Update the board with the modified board_shared_user array
+                $board->update(['board_shared_user' => $boardSharedUsers]);
+
+                return response()->json(['board' => $board, 'message' => 'Board share user updated successfully'], 200);
+            } 
+            else {
+                return response()->json(['message' => 'Shared user not found'], 404);
+            }
+        } catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
         }
-
-        // Check if the provided email matches the space_owner_user_email
-        if ($request->input('space_owner_user.space_owner_user_email') !== $space['space_owner_user']['space_owner_user_email']) {
-            return response()->json(['message' => 'Email does not match space owner email'], 422);
-        }
-
-        // Extract the new_space_shared_user_emails array from the request
-        $newSpaceSharedUserEmails = $request->input('new_space_shared_user_emails');
-
-        // Remove duplicates from the new_space_shared_user_emails array
-        $uniqueEmails = array_unique($newSpaceSharedUserEmails);
-
-        // Check for existing emails in the space_shared_user array
-        $existingEmails = array_column($space['space_shared_user'], 'space_shared_user_email');
-        $duplicates = array_intersect($uniqueEmails, $existingEmails);
-
-        // If duplicates exist, return a response with the duplicated emails
-        if (!empty($duplicates)) {
-            return response()->json(['message' => 'Duplicate emails found', 'duplicates' => $duplicates], 422);
-        }
-
-        // Push each new unique space_shared_user_email into the space_shared_user array
-        foreach ($uniqueEmails as $newSpaceSharedUserEmail) {
-            $space->push('space_shared_user', ['space_shared_user_email' => $newSpaceSharedUserEmail]);
-        }
-
-        return response()->json(['message' => 'Space share user insert successfully']);
     }
 
     public function delete_share_user(Request $request, $id)
     {
-        $request->validate([
-            'space_owner_user.space_owner_user_email' => 'required|email',
-            'space_shared_user_email' => 'required|email',
-        ]);
+        try {
+            $request->validate([
+                'board_owner_user.board_owner_email' => 'required|email',
+                'board_shared_user_email' => 'required|array',
+                'board_shared_user_email.*' => 'required|email',
+            ]);
 
-        $space = Space::find($id);
+            $board = Board::find($id);
 
-        if (!$space) {
-            return response()->json(['message' => 'Space not found'], 404);
+            if (!$board) {
+                return response()->json(['message' => 'Board not found'], 404);
+            }
+
+            // Check if the provided email matches the board_owner_email
+            $boardOwnerEmail = $request->input('board_owner_user.board_owner_email');
+            if ($boardOwnerEmail !== $board['board_owner_user']['board_owner_email']) {
+                return response()->json(['message' => 'Email does not match board owner email'], 422);
+            }
+
+            // Get the array of shared users to delete
+            $sharedUserEmailsToDelete = $request->input('board_shared_user_email');
+
+            // Extract the emails from the board shared users
+            $boardSharedUserEmails = array_column($board['board_shared_user'], 'board_shared_user_email');
+            
+            // Identify the emails that are not found
+            $notFoundEmails = array_diff($sharedUserEmailsToDelete, $boardSharedUserEmails);
+
+            if (!empty($notFoundEmails)) {
+                return response()->json(['message' => 'Some emails not found', 'not_found_emails' => $notFoundEmails], 422);
+            }
+            
+            // Remove shared users with matching email addresses
+            $boardSharedUsers = array_filter($board['board_shared_user'], function ($user) use ($sharedUserEmailsToDelete) {
+                return !in_array($user['board_shared_user_email'], $sharedUserEmailsToDelete);
+            });
+
+            // Update the board with the modified board_shared_user array
+            $board->update(['board_shared_user' => array_values($boardSharedUsers)]);
+
+            return response()->json(['message' => 'Board shared users deleted successfully'], 200);
+        } catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
         }
+    }
 
-        // Check if the provided email matches the space_owner_user_email
-        if ($request->input('space_owner_user.space_owner_user_email') !== $space['space_owner_user']['space_owner_user_email']) {
-            return response()->json(['message' => 'Email does not match space owner email'], 422);
+    
+    public function update_api_key(Request $request, $id)
+    {
+        try{
+            $request->validate([
+                'email' => 'required|email',
+            ]);
+
+            $data = $request->all();
+            $data['board_api_key'] =Uuid::uuid4()->toString();
+
+            $board = Board::find($id);
+
+            if (!$board) {
+                logger()->info($board);
+                return response()->json(['message' => 'Board not found']);
+            }
+
+            // Check if the provided email matches the board_owner_user_email
+            if ($request->input('email') !== $board['board_owner_user']['board_owner_email']) {
+                return response()->json(['message' => 'Email does not match board owner email']);
+            }
+
+            $board->update($data);
+
+            return response()->json(['message' => $board['board_api_key']], 200);            
         }
-
-        $spaceSharedUserEmail = $request->input('space_shared_user_email');
-
-        // Check if the provided space_shared_user_email exists in the array
-        $existingEmails = array_column($space['space_shared_user'], 'space_shared_user_email');
-
-        if (!in_array($spaceSharedUserEmail, $existingEmails)) {
-            return response()->json(['message' => 'Space shared user email not found in the array'], 422);
+        catch (\Exception $e) {
+            logger()->error($e);
+            return response()->json(['error' => 'Internal Server Error'], 500);
         }
-
-        // Remove the specified space_shared_user_email from the array
-        $space['space_shared_user'] = array_values(array_filter($space['space_shared_user'], function ($user) use ($spaceSharedUserEmail) {
-            return $user['space_shared_user_email'] !== $spaceSharedUserEmail;
-        }));
-
-        // Save the updated space document
-        $space->save();
-
-        return response()->json(['message' => 'Space shared user deleted successfully']);
     }
 }

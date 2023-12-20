@@ -33,7 +33,7 @@ class FieldDataSeeder extends Seeder
                     'landing_index_login' => '登錄',
                     'landing_index_demo' => '試玩',
                     'landing_index_error_msg' => '用戶名稱與賬密不匹配',
-                ],
+                ]
             ],
             'created_at' => '2023-11-07 04:02:44',
             'updated_at' => '2023-11-07 04:02:44',

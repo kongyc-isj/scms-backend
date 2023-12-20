@@ -20,14 +20,15 @@ class BoardSeeder extends Seeder
             [
                 'board_name' => 'go888king',
                 'board_description' => 'go888king operator',
+                'board_default_language_code' => 'en',
                 'board_api_key' => 'efdjnewonfeowfnwe',
                 'board_owner_user' => [
-                    'board_owner_email' => 'jeff@gmail.com',
+                    'board_owner_email' => 'Jeff@example.com',
                     'board_owner_api_key' => 'efdjnewonfefeowfnwer',
                 ],
                 'board_shared_user' => [
                     [
-                        'board_shared_user_email' => 'howard@gmail.com',
+                        'board_shared_user_email' => 'Howard@example.com',
                         'board_shared_user_create_access' => 1,
                         'board_shared_user_read_access' => 1,
                         'board_shared_user_update_access' => 1,
@@ -35,7 +36,7 @@ class BoardSeeder extends Seeder
                         'board_shared_user_api_key' => 'efdjnewonfeowfnwe',
                     ],
                     [
-                        'board_shared_user_email' => 'fremont@gmail.com',
+                        'board_shared_user_email' => 'Fremont@example.com',
                         'board_shared_user_create_access' => 1,
                         'board_shared_user_read_access' => 1,
                         'board_shared_user_update_access' => 1,

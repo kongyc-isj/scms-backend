@@ -4,6 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SpaceController;
 use App\Http\Controllers\BoardController;
+use App\Http\Controllers\ComponentController;
+use App\Http\Controllers\FieldKeyController;
+use App\Http\Controllers\LanguageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,28 +21,31 @@ use App\Http\Controllers\BoardController;
 
 Route::middleware('api')->group(function () {
     //space CRUD
-    Route::post('/spaces', [SpaceController::class, 'store']);
-    Route::get('/spaces', [SpaceController::class, 'index']);
-    Route::get('/spaces/{id}', [SpaceController::class, 'show']);
-    Route::put('/spaces/{id}', [SpaceController::class, 'update']);
-    Route::delete('/spaces/{id}', [SpaceController::class, 'destroy']);
+    Route::apiResource('spaces', SpaceController::class);
 
-    //space share user CRUD
+    //customize space share user CRUD
     Route::get('/spaces/get_share_user/{id}', [SpaceController::class, 'get_share_user']);
     Route::put('/spaces/update_share_user/{id}', [SpaceController::class, 'update_share_user']);
     Route::delete('/spaces/delete_share_user/{id}', [SpaceController::class, 'delete_share_user']);
 
     //board CRUD
-    //Route::resource('boards', BoardController::class);
-    Route::post('/boards', [BoardController::class, 'store']);
-    Route::get('/boards', [BoardController::class, 'index']);
-    Route::get('/boards/{id}', [BoardController::class, 'show']);
-    Route::put('/boards/{id}', [BoardController::class, 'update']);
-    Route::delete('/boards/{id}', [BoardController::class, 'destroy']);
+    Route::apiResource('boards', BoardController::class);
 
+    //customize board share user CRUD
     Route::get('/boards/get_share_user/{id}', [BoardController::class, 'get_share_user']);
+    Route::post('/boards/create_share_user/{id}', [BoardController::class, 'create_share_user']);
     Route::put('/boards/update_share_user/{id}', [BoardController::class, 'update_share_user']);
     Route::delete('/boards/delete_share_user/{id}', [BoardController::class, 'delete_share_user']);
+    Route::put('/boards/update_api_key/{id}', [BoardController::class, 'update_api_key']);
+
+    //component CRUD
+    Route::apiResource('components', ComponentController::class);
+
+    //field key CRUD
+    Route::apiResource('field_key', FieldKeyController::class);
+    
+    //language R
+    Route::get('/languages', [LanguageController::class, 'index']);
 
 });
 
