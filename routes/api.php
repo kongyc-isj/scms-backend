@@ -7,6 +7,7 @@ use App\Http\Controllers\BoardController;
 use App\Http\Controllers\ComponentController;
 use App\Http\Controllers\FieldKeyController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\FieldTypeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +48,8 @@ Route::middleware('api')->group(function () {
     //language R
     Route::get('/languages', [LanguageController::class, 'index']);
 
+    //Field type R
+    Route::get('/field_types', [FieldTypeController::class, 'index']);
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

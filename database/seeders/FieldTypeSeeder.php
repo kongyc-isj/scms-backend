@@ -16,100 +16,135 @@ class FieldTypeSeeder extends Seeder
     public function run()
     {
         //
-        $field_type = [
+        $field_types = [
+            // Text
             [
                 'field_type_tag' => 'text',
-                'field_type_name' => 'short text',
+                'field_type_name' => 'short_text',
                 'field_type_description' => 'Small or long text like title or description',
                 'created_at' => '2023-11-07 04:02:44',
                 'updated_at' => '2023-11-07 04:02:44',
-                'deleted_at' => null,            
+                'deleted_at' => null,
             ],
             [
+                'field_type_tag' => 'text',
+                'field_type_name' => 'long_text',
+                'field_type_description' => 'Long text field',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
+
+            // Rich Text
+            [
+                'field_type_tag' => 'rich_text',
+                'field_type_name' => 'rich_text',
+                'field_type_description' => 'Formatted rich text field',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
+
+            // Email
+            [
+                'field_type_tag' => 'email',
                 'field_type_name' => 'email',
-                'field_type_description' => 'Email field with validations format',
+                'field_type_description' => 'Email address field',
                 'created_at' => '2023-11-07 04:02:44',
                 'updated_at' => '2023-11-07 04:02:44',
-                'deleted_at' => null,            
+                'deleted_at' => null,
             ],
+
+            // Number
             [
-                'field_type_name' => 'rich text',
-                'field_type_description' => 'A rich text editor with formatting options',
+                'field_type_tag' => 'number',
+                'field_type_name' => 'integer',
+                'field_type_description' => 'Integer field',
                 'created_at' => '2023-11-07 04:02:44',
                 'updated_at' => '2023-11-07 04:02:44',
-                'deleted_at' => null,            
+                'deleted_at' => null,
             ],
             [
+                'field_type_tag' => 'number',
+                'field_type_name' => 'big_integer',
+                'field_type_description' => 'Big Integer field',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
+            [
+                'field_type_tag' => 'number',
+                'field_type_name' => 'decimal',
+                'field_type_description' => 'Decimal field',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
+            [
+                'field_type_tag' => 'number',
+                'field_type_name' => 'float',
+                'field_type_description' => 'Float field',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
+
+            // Date
+            [
+                'field_type_tag' => 'date',
+                'field_type_name' => 'date',
+                'field_type_description' => 'Date field (e.g., 01/01/2023)',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
+            [
+                'field_type_tag' => 'date',
+                'field_type_name' => 'datetime',
+                'field_type_description' => 'Datetime field (e.g., 01/01/2023 00:00 AM)',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
+            [
+                'field_type_tag' => 'date',
+                'field_type_name' => 'time',
+                'field_type_description' => 'Time field (e.g., 00:00 AM)',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
+
+            // Media
+            [
+                'field_type_tag' => 'media',
                 'field_type_name' => 'media',
-                'field_type_description' => 'Best for avatar, profile picture or cover',
+                'field_type_description' => 'Media file field',
                 'created_at' => '2023-11-07 04:02:44',
                 'updated_at' => '2023-11-07 04:02:44',
-                'deleted_at' => null,            
+                'deleted_at' => null,
             ],
-            // Add more board entries as needed
+            [
+                'field_type_tag' => 'boolean',
+                'field_type_name' => 'boolean',
+                'field_type_description' => 'Boolean field',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
+
+            // JSON
+            [
+                'field_type_tag' => 'json',
+                'field_type_name' => 'json',
+                'field_type_description' => 'JSON field',
+                'created_at' => '2023-11-07 04:02:44',
+                'updated_at' => '2023-11-07 04:02:44',
+                'deleted_at' => null,
+            ],
         ];
 
-        $field_type = [
-            [
-                'field_type_tag' => 'text',
-                'field_type_name' => 'short text',
-                'field_type_description' => 'Small or long text like title or description',
-                'created_at' => '2023-11-07 04:02:44',
-                'updated_at' => '2023-11-07 04:02:44',
-                'deleted_at' => null,            
-            ],
-            [
-                'field_type_tag' => 'text',
-                'field_type_name' => 'long text',
-                'field_type_description' => 'Small or long text like title or description',
-                'created_at' => '2023-11-07 04:02:44',
-                'updated_at' => '2023-11-07 04:02:44',
-                'deleted_at' => null,            
-            ],
-            [
-                'field_type_name' => 'email',
-                'field_type_description' => 'Email field with validations format',
-                'created_at' => '2023-11-07 04:02:44',
-                'updated_at' => '2023-11-07 04:02:44',
-                'deleted_at' => null,            
-            ],
-            [
-                'field_type_name' => 'rich text',
-                'field_type_description' => 'A rich text editor with formatting options',
-                'created_at' => '2023-11-07 04:02:44',
-                'updated_at' => '2023-11-07 04:02:44',
-                'deleted_at' => null,            
-            ],
-            [
-                'field_type_name' => 'media',
-                'field_type_description' => 'Best for avatar, profile picture or cover',
-                'created_at' => '2023-11-07 04:02:44',
-                'updated_at' => '2023-11-07 04:02:44',
-                'deleted_at' => null,            
-            ],
-            // Add more board entries as needed
-        ];
-
-        $field_type_api_return_format = [
-            "text" => [
-                [
-                    "short text",
-                    "long text"
-                ],
-                [
-                    "field_type_name"        => "long text",
-                    "field_type_description" => "Small or long text like title or description",
-                ],
-            ],
-            "email" => [
-                [
-                    "field_type_name"        => "email",
-                    "field_type_description" => "Small or long text like title or description",
-                ],
-            ]
-        ];
-
-        // Insert data into the board table
-        DB::table('field_type')->insert($field_type);    
+        // Insert data into the field type table
+        DB::table('field_type')->insert($field_types);    
     }
 }
