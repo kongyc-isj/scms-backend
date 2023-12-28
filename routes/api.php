@@ -8,6 +8,7 @@ use App\Http\Controllers\ComponentController;
 use App\Http\Controllers\FieldKeyController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\FieldTypeController;
+use App\Http\Middleware\ValidateAccessToken;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,7 +21,7 @@ use App\Http\Controllers\FieldTypeController;
 |
 */
 
-Route::middleware('api')->group(function () {
+Route::middleware(['api', 'validateAccessToken'])->group(function () {
     //space CRUD
     Route::apiResource('spaces', SpaceController::class);
 
