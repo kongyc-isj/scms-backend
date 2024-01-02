@@ -15,10 +15,6 @@ class BoardController extends Controller
     {
         try
         {
-            $request->validate([
-                'email' => 'required|email'
-            ]);
-
             $email = $request->input('email');
 
             $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
@@ -53,10 +49,6 @@ class BoardController extends Controller
     {
         try
         {
-            $request->validate([
-                'email' => 'required|email'
-            ]);
-
             $email = $request->input('email');
 
             $board = Board::where('_id', $id)
@@ -104,10 +96,10 @@ class BoardController extends Controller
                 'space_id'                           => 'required|string',
                 'board_name'                         => 'required|string',
                 'board_description'                  => 'required|string',
-                'board_default_language_code'        => 'required|string',
-                'board_owner_user.board_owner_email' => 'required|email'
+                'board_default_language_code'        => 'required|string'
             ]);
 
+            $email    = $request->input('email');
             $data     = $request->all();
             $language = Language::where('language_code', $data['board_default_language_code'])
                 ->where('deleted_at', null)
@@ -116,7 +108,7 @@ class BoardController extends Controller
             if (!$language) {
                 return response()->json(['message' => 'Language not found'], 404);
             }      
-
+            $data['board_owner_user']['board_owner_email']   = $email;
             $data['board_api_key']                           = Uuid::uuid4()->toString();
             $data['board_owner_user']['board_owner_api_key'] = Uuid::uuid4()->toString();
             $data['board_shared_user']                       = [];
@@ -142,10 +134,10 @@ class BoardController extends Controller
             $request->validate([
                 'board_name'                         => 'required|string',
                 'board_description'                  => 'required|string',
-                'board_default_language_code'        => 'required|string',
-                'board_owner_user.board_owner_email' => 'required|email'
+                'board_default_language_code'        => 'required|string'
             ]);
-        
+
+            $email = $request->input('email');
             $data  = $request->only(['board_name', 'board_description', 'board_default_language_code']);
             $board = Board::find($id);
         
@@ -163,7 +155,7 @@ class BoardController extends Controller
             }      
 
             // Check if the provided email matches the board_owner_user_email
-            if ($request->input('board_owner_user.board_owner_email') !== $board['board_owner_user']['board_owner_email']) {
+            if ($email !== $board['board_owner_user']['board_owner_email']) {
                 return response()->json(['message' => 'Email does not match board owner email']);
             }
         
@@ -181,9 +173,7 @@ class BoardController extends Controller
     {
         try
         {
-            $request->validate([
-                'board_owner_user.board_owner_email' => 'required|email'
-            ]);
+            $email = $request->input('email');
 
             $board = Board::find($id);
 
@@ -192,7 +182,7 @@ class BoardController extends Controller
             }
 
             // Check if the provided email matches the board_owner_user_email
-            if ($request->input('email') !== $board['board_owner_user']['board_owner_email']) {
+            if ($email !== $board['board_owner_user']['board_owner_email']) {
                 return response()->json(['message' => 'Email does not match board owner email']);
             }
 
@@ -210,10 +200,6 @@ class BoardController extends Controller
     public function get_share_user(Request $request, $id)
     {
         try {
-            $request->validate([
-                'board_owner_user.board_owner_email' => 'required|email',
-            ]);
-
             $email = $request->input('email');
 
             $board = Board::find($id);
@@ -222,7 +208,7 @@ class BoardController extends Controller
                 return response()->json(['message' => 'Board not found'], 404);
             }
 
-            if ($request->input('board_owner_user.board_owner_email') !== $board['board_owner_user']['board_owner_email']) {
+            if ($email !== $board['board_owner_user']['board_owner_email']) {
                 return response()->json(['message' => 'Email does not match board owner email'], 404);
             }
 
@@ -240,13 +226,13 @@ class BoardController extends Controller
     {
         try {
             $request->validate([
-                'board_owner_user.board_owner_email' => 'required|email',
                 'board_shared_user.board_shared_user_email' => 'required|email',
                 'board_shared_user.board_shared_user_create_access' => 'required|integer',
                 'board_shared_user.board_shared_user_read_access' => 'required|integer',
                 'board_shared_user.board_shared_user_update_access' => 'required|integer',
                 'board_shared_user.board_shared_user_delete_access' => 'required|integer',
             ]);
+            $email = $request->input('email');
 
             $board = Board::find($id);
 
@@ -255,8 +241,7 @@ class BoardController extends Controller
             }
 
             // Check if the provided email matches the board_owner_email
-            $boardOwnerEmail = $request->input('board_owner_user.board_owner_email');
-            if ($boardOwnerEmail !== $board['board_owner_user']['board_owner_email']) {
+            if ($email !== $board['board_owner_user']['board_owner_email']) {
                 return response()->json(['message' => 'Email does not match board owner email'], 422);
             }
 
@@ -277,7 +262,7 @@ class BoardController extends Controller
             // Update the board with the modified board_shared_user array
             $board->update(['board_shared_user' => $boardSharedUsers]);
 
-            return response()->json(['board' => $board, 'message' => 'Board share user created successfully'], 200);
+            return response()->json(['message' => 'Board share user created successfully'], 200);
 
         } catch (\Exception $e) {
             logger()->error($e);
@@ -289,13 +274,13 @@ class BoardController extends Controller
     {
         try {
             $request->validate([
-                'board_owner_user.board_owner_email' => 'required|email',
                 'board_shared_user.board_shared_user_email' => 'required|email',
                 'board_shared_user.board_shared_user_create_access' => 'required|integer',
                 'board_shared_user.board_shared_user_read_access' => 'required|integer',
                 'board_shared_user.board_shared_user_update_access' => 'required|integer',
                 'board_shared_user.board_shared_user_delete_access' => 'required|integer',
             ]);
+            $email = $request->input('email');
 
             $board = Board::find($id);
 
@@ -304,8 +289,7 @@ class BoardController extends Controller
             }
 
             // Check if the provided email matches the board_owner_email
-            $boardOwnerEmail = $request->input('board_owner_user.board_owner_email');
-            if ($boardOwnerEmail !== $board['board_owner_user']['board_owner_email']) {
+            if ($email !== $board['board_owner_user']['board_owner_email']) {
                 return response()->json(['message' => 'Email does not match board owner email'], 422);
             }
 
@@ -323,7 +307,7 @@ class BoardController extends Controller
                 // Update the board with the modified board_shared_user array
                 $board->update(['board_shared_user' => $boardSharedUsers]);
 
-                return response()->json(['board' => $board, 'message' => 'Board share user updated successfully'], 200);
+                return response()->json(['message' => 'Board share user updated successfully'], 200);
             } 
             else {
                 return response()->json(['message' => 'Shared user not found'], 404);
@@ -338,10 +322,10 @@ class BoardController extends Controller
     {
         try {
             $request->validate([
-                'board_owner_user.board_owner_email' => 'required|email',
                 'board_shared_user_email' => 'required|array',
                 'board_shared_user_email.*' => 'required|email',
             ]);
+            $email = $request->input('email');
 
             $board = Board::find($id);
 
@@ -350,8 +334,7 @@ class BoardController extends Controller
             }
 
             // Check if the provided email matches the board_owner_email
-            $boardOwnerEmail = $request->input('board_owner_user.board_owner_email');
-            if ($boardOwnerEmail !== $board['board_owner_user']['board_owner_email']) {
+            if ($email !== $board['board_owner_user']['board_owner_email']) {
                 return response()->json(['message' => 'Email does not match board owner email'], 422);
             }
 

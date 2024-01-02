@@ -23,6 +23,10 @@ class ValidateAccessToken
                 return response()->json(['error' => 'Invalid access token'], 401);
             }
 
+            $validation_response = json_decode($validation_response, true);
+
+            $request = $this->customMerge($request, $validation_response);
+
             return $next($request);
         } 
         catch (\Exception $e) {
@@ -32,10 +36,25 @@ class ValidateAccessToken
 
     }
 
+    private function customMerge($array1, $array2) {
+        foreach ($array2 as $key => $value) {
+            if (is_array($value) && isset($array1[$key]) && is_array($array1[$key])) {
+                $array1[$key] = customMerge($array1[$key], $value);
+            } else {
+                $array1[$key] = $value;
+            }
+        }
+    
+        return $array1;
+    }
+
+
     private function callValidateTokenApi($access_token)
     {
         // Call the validate_token API on the OAuth server
-        $domain = 'https://scms-stg-oauth.ippcoin.com';  
+        //$domain = 'https://scms-stg-oauth.ippcoin.com';  
+        $domain = 'http://localhost:8001';  
+
         $url = '/api/users/token_validation';
         $endpoint = $domain . $url;
     

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Jenssegers\Mongodb\Eloquent\Model;
 use Carbon\Carbon;
 use App\Models\Space;
+use App\Models\Board;
 
 class SpaceController extends Controller
 {
@@ -15,16 +16,16 @@ class SpaceController extends Controller
         try { 
             $request->validate([
                 'space_name' => 'required|string',
-                'space_description' => 'required|string',
-                'space_owner_user.space_owner_user_email' => 'required|email',
+                'space_description' => 'required|string'
             ]);
 
             $data = $request->all();
 
-            $data['space_shared_user'] = [];
-            $data['created_at'] = Carbon::now()->format('Y-m-d H:i:s');
-            $data['updated_at'] = null;
-            $data['deleted_at'] = null;
+            $data['space_owner_user']['space_owner_user_email'] = $request->email;
+            $data['space_shared_user']                       = [];
+            $data['created_at']                              = Carbon::now()->format('Y-m-d H:i:s');
+            $data['updated_at']                              = null;
+            $data['deleted_at']                              = null;
 
             logger()->info($data);
 
@@ -39,16 +40,69 @@ class SpaceController extends Controller
     }
 
     // Show all spaces by owner email
-    public function index(Request $request)   //curl http://localhost:8000/spaces/space_owner_user_email?Jeff@example.com
+    public function index(Request $request)   
     {
         try { 
-            $email = $request->input('email');
+            $email = $request->email;
 
-            $space = Space::where('space_owner_user.space_owner_user_email', $email)
-                ->orWhere('space_shared_user.space_shared_user_email', $email)
+            //retrieve data if have create own space
+            $owner_space  = Space::where('space_owner_user.space_owner_user_email', $email)
+                ->where('deleted_at', null)
+                ->get(['_id', 'space_name', 'space_description']);
+            
+            logger()->info($owner_space);
+
+            //retrieve data if have been invited to other's board
+            $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
+                ->where('deleted_at', null)
+                ->get(['space_id']);
+
+            //prepare space_id list which is belong to the share board
+            $space_ids = [];
+            foreach ($shared_board as $item) {
+
+                $itemArray = json_decode(json_encode($item), true);
+                $space_ids[] = $itemArray['space_id'];
+            }
+
+            //pass in the space_id list from share board to retrieve the space list
+            $space_from_share_board = Space::whereIn('_id', $space_ids)
+                ->where('deleted_at', null)
                 ->get(['_id', 'space_name', 'space_description']);
 
-            return response()->json(['space' => $space, 'message' => 'Space show successfully'], 200);       
+            //merge the own created space list and get invited share boards' space list
+
+            logger()->info($space_from_share_board);
+
+            $merged = [];
+
+            // Merge own created space list
+            foreach ($owner_space as $item) {
+                $id = $item['_id'];
+                if (!isset($merged[$id])) {
+                    $merged[$id] = $item;
+                }
+            }
+            
+            // Merge get invited share boards' space list
+            foreach ($space_from_share_board as $item) {
+                $id = $item['_id'];
+                if (!isset($merged[$id])) {
+                    $merged[$id] = $item;
+                }
+            }
+            
+            $merged_result = array_values($merged);
+
+
+            logger()->info($merged_result);
+            if(empty ($merged_result))
+            {
+                return response()->json(['space' => [], 'message' => 'No match email with space'], 400);      
+            }
+
+            return response()->json(['space' => $merged_result, 'message' => 'Space show successfully'], 200);
+
         } 
         catch (\Exception $e) {
             logger()->error($e);
@@ -58,10 +112,10 @@ class SpaceController extends Controller
 
 
     // Show specific spaces by owner email
-    public function show(Request  $request, $id)
+    public function show(Request $request, $id)
     {
         try { 
-            $email = $request->input('email');
+            $email = $request->email;
 
             $space = Space::where('_id', $id)
             ->where('deleted_at', null)
@@ -106,10 +160,12 @@ class SpaceController extends Controller
         try { 
             $request->validate([
                 'space_name' => 'required|string',
-                'space_description' => 'required|string',
-                'space_owner_user.space_owner_user_email' => 'required|email',
+                'space_description' => 'required|string'
             ]);
 
+            $email = $request->email;
+
+            logger()->info($request);
             $data = $request->only(['space_name', 'space_description']);
 
             $space = Space::where('_id', $id)
@@ -122,7 +178,7 @@ class SpaceController extends Controller
             }
 
             // Check if the provided email matches the space_owner_user_email
-            if ($request->input('space_owner_user.space_owner_user_email') !== $space['space_owner_user']['space_owner_user_email']) {
+            if ($email !== $space['space_owner_user']['space_owner_user_email']) {
                 return response()->json(['message' => 'Email does not match space owner email']);
             }
 
@@ -140,9 +196,7 @@ class SpaceController extends Controller
     public function destroy(Request $request, $id)
     {
         try { 
-            $request->validate([
-                'space_owner_user.space_owner_user_email' => 'required|email',
-            ]);
+            $email = $request->email;
 
             $space = Space::where('_id', $id)
                 ->where('deleted_at', null)
@@ -153,7 +207,7 @@ class SpaceController extends Controller
             }
 
             // Check if the provided email matches the space_owner_user_email
-            if ($request->input('space_owner_user.space_owner_user_email') !== $space['space_owner_user']['space_owner_user_email']) {
+            if ($email !== $space['space_owner_user']['space_owner_user_email']) {
                 return response()->json(['message' => 'Email does not match space owner email']);
             }
 
@@ -168,15 +222,22 @@ class SpaceController extends Controller
         }  
     }
 
-    public function get_share_user($id)
+    public function get_share_user(Request $request, $id)
     {
         try { 
+            $email = $request->email;
+
             $space = Space::where('_id', $id)
                 ->where('deleted_at', null)
                 ->first();
 
             if (!$space) {
                 return response()->json(['message' => 'Space not found'], 404);
+            }
+
+            // Check if the provided email matches the space_owner_user_email
+            if ($email !== $space['space_owner_user']['space_owner_user_email']) {
+                return response()->json(['message' => 'Email does not match space owner email'], 422);
             }
 
             $shareUsers = $space['space_shared_user'];
@@ -192,8 +253,9 @@ class SpaceController extends Controller
     public function update_share_user(Request $request, $id)
     {
         try{
+            $email = $request->email;
+      
             $request->validate([
-                'space_owner_user.space_owner_user_email' => 'required|email|exists:spaces,space_owner_user.space_owner_user_email',
                 'new_space_shared_user_emails.*' => 'required|email',
             ]);
 
@@ -206,7 +268,7 @@ class SpaceController extends Controller
             }
 
             // Check if the provided email matches the space_owner_user_email
-            if ($request->input('space_owner_user.space_owner_user_email') !== $space['space_owner_user']['space_owner_user_email']) {
+            if (($email) !== $space['space_owner_user']['space_owner_user_email']) {
                 return response()->json(['message' => 'Email does not match space owner email'], 422);
             }
 
@@ -241,9 +303,10 @@ class SpaceController extends Controller
     public function delete_share_user(Request $request, $id)
     {
         try{
+            $email = $request->email;
+
             $request->validate([
-                'space_owner_user.space_owner_user_email' => 'required|email',
-                'space_shared_user_email' => 'required|email',
+                'space_shared_user_email' => 'required|email'
             ]);
 
             $space = Space::where('_id', $id)
@@ -255,7 +318,7 @@ class SpaceController extends Controller
             }
 
             // Check if the provided email matches the space_owner_user_email
-            if ($request->input('space_owner_user.space_owner_user_email') !== $space['space_owner_user']['space_owner_user_email']) {
+            if ($email !== $space['space_owner_user']['space_owner_user_email']) {
                 return response()->json(['message' => 'Email does not match space owner email'], 422);
             }
 
