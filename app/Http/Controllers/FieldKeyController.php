@@ -49,15 +49,15 @@ class FieldKeyController extends Controller
             {
                 $field_key = FieldKey::where('component_id', $component_id)
                     ->where('deleted_at', null)
-                    ->get(['_id', 'field_key_name', 'field_key_description']); 
+                    ->get(['_id', 'field_key_name', 'field_key_description', 'field_type_name']); 
 
-                return response()->json(['field_key' => $field_key, 'message' => 'Field Key show successfully'], 200);
+                return response()->json(['field_key' => $field_key, 'message' => 'Field Key read successfully'], 200);
                 }
             elseif($method == "show")
             {
                 $field_key = FieldKey::where('_id', $field_key_id)
                     ->where('deleted_at', null)
-                    ->first();
+                    ->first(['_id', 'field_key_name', 'field_key_description', 'field_type_name']);
 
                 return response()->json(['field_key' => $field_key, 'message' => 'Field Key show successfully'], 200);
             }
@@ -187,16 +187,14 @@ class FieldKeyController extends Controller
         try {       
      
             $request->validate([
-                'component_id' => 'required|string',
-                'email'        => 'required|email'
+                'component_id' => 'required|string'
             ]);
 
             $data = $request->all();
 
             $component_id = $data['component_id'];
-            $email        = $data['email'];
         
-            return $this->field_key_permission($component_id, $email, null, null, 'index');
+            return $this->field_key_permission($component_id, $request['email'], null, null, 'index');
 
         } catch (\Exception $e) {
             logger()->error($e);
@@ -207,17 +205,17 @@ class FieldKeyController extends Controller
     public function show(Request $request, $id)
     {
         try {
-            $request->validate([
-                'component_id' => 'required|string',
-                'email'        => 'required|email'
-            ]);
+            $field_key = FieldKey::where('_id', $id)
+                ->where('deleted_at', null)
+                ->first();  
 
+            if (!$field_key) {
+                return response()->json(['message' => 'Field key not found'], 404);
+            }
+            
             $data = $request->all();
 
-            $component_id = $data['component_id'];
-            $email    = $data['email'];
-
-            return $this->field_key_permission($component_id, $email, null, $id, 'show');
+            return $this->field_key_permission($field_key->component_id, $request['email'], null, $id, 'show');
 
         } catch (\Exception $e) {
             logger()->error($e);
@@ -234,7 +232,6 @@ class FieldKeyController extends Controller
                 'field_type_name'       => 'required|string', 
                 'field_key_name'        => 'required|string',
                 'field_key_description' => 'required|string',
-                'email'                 => 'required|email'
             ]);
             $data = $request->all();
 
@@ -245,7 +242,7 @@ class FieldKeyController extends Controller
             $data['updated_at'] = null;
             $data['deleted_at'] = null;
 
-            return $this->field_key_permission($component_id, $email, $data, null, 'store');
+            return $this->field_key_permission($component_id, $request['email'], $data, null, 'store');
 
         } catch (\Exception $e) {
             logger()->error($e);
@@ -258,26 +255,24 @@ class FieldKeyController extends Controller
         try {
         // Validate the request
             $request->validate([
-                'component_id'          => 'required|string',
                 'field_key_name'        => 'required|string',
-                'field_key_description' => 'required|string',
-                'email'                 => 'required|email'
+                'field_key_description' => 'required|string'
             ]);
 
             $data               = $request->only(['field_key_name', 'field_key_description']);
             $data['updated_at'] = Carbon::now()->format('Y-m-d H:i:s');
 
             // Find the field key by ID
-            $fieldKey = FieldKey::where('_id', $id)
+            $field_key = FieldKey::where('_id', $id)
                 ->where('deleted_at', null)
                 ->first();     
 
-            if (!$fieldKey) {
+            if (!$field_key) {
                 return response()->json(['message' => 'Field key not found'], 404);
             }
 
             // Update the field key
-            return $this->field_key_permission($request['component_id'], $request['email'], $data, $id, 'update');
+            return $this->field_key_permission($field_key->component_id, $request['email'], $data, $id, 'update');
 
         } catch (\Exception $e) {
             logger()->error($e);
@@ -288,23 +283,18 @@ class FieldKeyController extends Controller
     public function destroy(Request $request, $id)
     {
         try {
-            $request->validate([
-                'component_id' => 'required|string',
-                'email'        => 'required|email'
-            ]);
 
             $data['deleted_at'] = Carbon::now()->format('Y-m-d H:i:s');
 
-            $fieldKey = FieldKey::where('_id', $id)
+            $field_key = FieldKey::where('_id', $id)
                 ->where('deleted_at', null)
                 ->first();   
 
-
-            if (!$fieldKey) {
+            if (!$field_key) {
                 return response()->json(['message' => 'Field key not found'], 404);
             }
 
-            return $this->field_key_permission($request['component_id'], $request['email'], $data, $id, 'destroy');
+            return $this->field_key_permission($field_key->component_id, $request['email'], $data, $id, 'destroy');
 
         } catch (\Exception $e) {
             logger()->error($e);
