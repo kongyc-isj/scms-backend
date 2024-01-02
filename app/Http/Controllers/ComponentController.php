@@ -177,8 +177,7 @@ class ComponentController extends Controller
         try {       
      
             $request->validate([
-                'board_id' => 'required|string',
-                'email'    => 'required|email'
+                'board_id' => 'required|string'
             ]);
 
             $data = $request->all();
@@ -186,7 +185,7 @@ class ComponentController extends Controller
             $board_id = $data['board_id'];
             $email    = $data['email'];
         
-            return $this->component_permission($board_id, $email, null, null, 'index');
+            return $this->component_permission($board_id, $request['email'], null, null, 'index');
 
         } catch (\Exception $e) {
             logger()->error($e);
@@ -206,20 +205,18 @@ class ComponentController extends Controller
             $request->validate([
                 'board_id' => 'required|string',
                 'component_name' => 'required|string',
-                'component_description' => 'required|string',
-                'email' => 'required|email'
+                'component_description' => 'required|string'
             ]);
 
             $data = $request->all();
 
             $board_id = $data['board_id'];
-            $email    = $data['email'];
 
             $data['created_at'] = Carbon::now()->format('Y-m-d H:i:s');
             $data['updated_at'] = null;
             $data['deleted_at'] = null;
 
-            return $this->component_permission($board_id, $email, $data, null, 'store');
+            return $this->component_permission($board_id, $request['email'], $data, null, 'store');
             
         } catch (\Exception $e) {
             logger()->error($e);
@@ -236,17 +233,13 @@ class ComponentController extends Controller
     public function show(Request $request, $id)
     {
         try {
-            $request->validate([
-                'board_id' => 'required|string',
-                'email'    => 'required|email'
-            ]);
-
             $data = $request->all();
 
-            $board_id = $data['board_id'];
-            $email    = $data['email'];
+            $component = Component::where('_id', $id)
+                ->where('deleted_at', null)
+                ->first();     
 
-            return $this->component_permission($board_id, $email, null, $id, 'show');
+            return $this->component_permission($component->board_id, $request['email'], null, $id, 'show');
 
         } catch (\Exception $e) {
             logger()->error($e);
@@ -265,10 +258,8 @@ class ComponentController extends Controller
     {
         try{
             $request->validate([
-                'board_id'              => 'required|string',
                 'component_name'        => 'required|string',
-                'component_description' => 'required|string',
-                'email'                 => 'required|email'
+                'component_description' => 'required|string'
             ]);
 
             $data               = $request->only(['component_name', 'component_description']);
@@ -282,7 +273,7 @@ class ComponentController extends Controller
                 return response()->json(['message' => 'Component not found']);
             }
 
-            return $this->component_permission($request['board_id'], $request['email'], $data, $id, 'update');
+            return $this->component_permission($component->board_id, $request['email'], $data, $id, 'update');
 
         } catch (\Exception $e) {
             logger()->error($e);
@@ -298,11 +289,6 @@ class ComponentController extends Controller
     public function destroy(Request $request, $id)
     {
         try{
-            $request->validate([
-                'board_id' => 'required|string',
-                'email'    => 'required|email'
-            ]);
-
             $data['deleted_at'] = Carbon::now()->format('Y-m-d H:i:s');
 
             $component = Component::where('_id', $id)
@@ -313,7 +299,7 @@ class ComponentController extends Controller
                 return response()->json(['message' => 'Component not found'], 404);
             }
 
-            return $this->component_permission($request['board_id'], $request['email'], $data, $id, 'destroy');
+            return $this->component_permission($component->board_id, $request['email'], $data, $id, 'destroy');
 
         } catch (\Exception $e) {
             logger()->error($e);
