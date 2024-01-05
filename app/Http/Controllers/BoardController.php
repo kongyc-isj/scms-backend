@@ -25,18 +25,32 @@ class BoardController extends Controller
                 ->where('deleted_at', null)
                 ->get(['_id', 'board_name', 'board_description', 'board_default_language_code', 'board_api_key']);
 
-            if (isset($owner_board))
-            {
-                return response()->json(['board' => $owner_board, 'message' => 'Board read successfully'], 200);
+            $merged = [];
+
+            // Merge own created space list
+            foreach ($owner_board as $item) {
+                $id = $item['_id'];
+                if (!isset($merged[$id])) {
+                    $merged[$id] = $item;
+                }
             }
-            elseif (isset($shared_board))
-            {
-                return response()->json(['board' => $shared_board, 'message' => 'Board read successfully'], 200);
+            
+            // Merge get invited share boards' space list
+            foreach ($shared_board as $item) {
+                $id = $item['_id'];
+                if (!isset($merged[$id])) {
+                    $merged[$id] = $item;
+                }
             }
-            else
+
+            $merged_result = array_values($merged);
+
+            if(empty ($merged_result))
             {
-                return response()->json(['board' => [], 'message' => 'No match email with board'], 400);
-            };
+                return response()->json(['space' => [], 'message' => 'No match email with space'], 400);      
+            }
+
+            return response()->json(['space' => $merged_result, 'message' => 'Space show successfully'], 200);
         }
         catch (\Exception $e) {
             logger()->error($e);
@@ -45,7 +59,7 @@ class BoardController extends Controller
     }
 
     // Show specific board by owner email
-    public function show(Request  $request, $id)
+    public function show(Request $request, $id)
     {
         try
         {
@@ -156,7 +170,7 @@ class BoardController extends Controller
 
             // Check if the provided email matches the board_owner_user_email
             if ($email !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Email does not match board owner email']);
+                return response()->json(['message' => 'Share user does not have permission to update board']);
             }
         
             $board->update($data);
@@ -183,7 +197,7 @@ class BoardController extends Controller
 
             // Check if the provided email matches the board_owner_user_email
             if ($email !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Email does not match board owner email']);
+                return response()->json(['message' => 'Share user does not have permission to delete board']);
             }
 
             $data['deleted_at'] = Carbon::now()->format('Y-m-d H:i:s');
@@ -209,7 +223,7 @@ class BoardController extends Controller
             }
 
             if ($email !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Email does not match board owner email'], 404);
+                return response()->json(['message' => 'Share user does not have permission to get share user list'], 404);
             }
 
             $shareUsers = $board['board_shared_user'];
@@ -242,7 +256,7 @@ class BoardController extends Controller
 
             // Check if the provided email matches the board_owner_email
             if ($email !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Email does not match board owner email'], 422);
+                return response()->json(['message' => 'Share user does not have permission to create share user'], 422);
             }
 
             // Extract the single board_shared_user data from the request
@@ -290,7 +304,7 @@ class BoardController extends Controller
 
             // Check if the provided email matches the board_owner_email
             if ($email !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Email does not match board owner email'], 422);
+                return response()->json(['message' => 'Share user does not have permission to update share user'], 422);
             }
 
             // Extract the single board_shared_user data from the request
@@ -335,7 +349,7 @@ class BoardController extends Controller
 
             // Check if the provided email matches the board_owner_email
             if ($email !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Email does not match board owner email'], 422);
+                return response()->json(['message' => 'Share user does not have permission to delete share user'], 422);
             }
 
             // Get the array of shared users to delete
@@ -380,13 +394,12 @@ class BoardController extends Controller
             $board = Board::find($id);
 
             if (!$board) {
-                logger()->info($board);
                 return response()->json(['message' => 'Board not found']);
             }
 
             // Check if the provided email matches the board_owner_user_email
             if ($request->input('email') !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Email does not match board owner email']);
+                return response()->json(['message' => 'Share user does not have permission to update board']);
             }
 
             $board->update($data);

@@ -8,6 +8,7 @@ use App\Http\Controllers\ComponentController;
 use App\Http\Controllers\FieldKeyController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\FieldTypeController;
+use App\Http\Controllers\FieldDataController;
 use App\Http\Middleware\ValidateAccessToken;
 
 /*
@@ -51,6 +52,12 @@ Route::middleware(['api', 'validateAccessToken'])->group(function () {
 
     //Field type R
     Route::get('/field_types', [FieldTypeController::class, 'index']);
+
+    //Field data CRUD
+    //Route::apiResource('field_data', FieldDataController::class);
+    Route::get('/field_data', [FieldDataController::class, 'show']);
+    Route::post('/field_data', [FieldDataController::class, 'update']);
+    Route::delete('/field_data', [FieldDataController::class, 'destroy']);
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

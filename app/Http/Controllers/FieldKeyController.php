@@ -8,6 +8,8 @@ use Carbon\Carbon;
 use App\Models\Component;
 use App\Models\Board;
 use App\Models\FieldKey;
+use App\Models\FieldData;
+use App\Models\FieldType;
 
 class FieldKeyController extends Controller
 {
@@ -16,10 +18,6 @@ class FieldKeyController extends Controller
         $component = Component::where('_id', $component_id)
             ->where('deleted_at', null)
             ->first();   
-
-        logger()->info($component_id);
-
-        logger()->info($component);
 
         if (!$component) {
             return response()->json(['message' => 'Component not found'], 404);
@@ -42,8 +40,10 @@ class FieldKeyController extends Controller
             if($method == "store")
             {
                 $field_key = FieldKey::create($data); 
-                logger()->info($field_key);
-                return response()->json(['field_key' => $field_key, 'message' => 'Field Key created successfully'], 200);
+
+                $this->insert_field_key_to_field_data($field_key, $board);
+
+                return response()->json(['message' => 'Field Key created successfully'], 200);
             }
             elseif($method == "index")
             {
@@ -79,6 +79,8 @@ class FieldKeyController extends Controller
 
                 $field_key->update($data);
 
+                $this->delete_field_key_from_field_data($field_key, $board);
+
                 return response()->json(['field_key' => $field_key, 'message' => 'Field Key deleted successfully'], 200);
             }            
             else
@@ -99,8 +101,9 @@ class FieldKeyController extends Controller
                 if ($sharedUser['board_shared_user_create_access'] == 1) 
                 {
                     $field_key = FieldKey::create($data); 
+                    $this->insert_field_key_to_field_data($field_key, $board);
 
-                    return response()->json(['field_key' => $field_key, 'message' => 'Field Key created successfully'], 200);
+                    return response()->json(['message' => 'Field Key created successfully'], 200);
                 } 
                 else 
                 {
@@ -235,14 +238,27 @@ class FieldKeyController extends Controller
             ]);
             $data = $request->all();
 
-            $component_id = $data['component_id'];
-            $email        = $data['email'];
-
             $data['created_at'] = Carbon::now()->format('Y-m-d H:i:s');
             $data['updated_at'] = null;
             $data['deleted_at'] = null;
 
-            return $this->field_key_permission($component_id, $request['email'], $data, null, 'store');
+            $field_type = FieldType::where('deleted_at', null)
+                ->get(['field_type_name']);     
+            
+            $field_type_exist = false;
+
+            foreach ($field_type as $each_field_type) {
+                if ($each_field_type['field_type_name'] === $request['field_type_name']) {
+                    $field_type_exist = true;
+                    break;
+                }
+            }
+
+            if (!$field_type_exist) {
+                return response()->json(['error' => 'Field type no found'], 500);
+            }
+
+            return $this->field_key_permission($request['component_id'], $request['email'], $data, null, 'store');
 
         } catch (\Exception $e) {
             logger()->error($e);
@@ -253,7 +269,6 @@ class FieldKeyController extends Controller
     public function update(Request $request, $id)
     {
         try {
-        // Validate the request
             $request->validate([
                 'field_key_name'        => 'required|string',
                 'field_key_description' => 'required|string'
@@ -300,5 +315,85 @@ class FieldKeyController extends Controller
             logger()->error($e);
             return response()->json(['error' => "$e"], 500);
         } 
+    }
+
+    public function insert_field_key_to_field_data($field_key, $board)
+    {
+        $field_data = FieldData::where('component_id', $field_key->component_id)
+        ->where('deleted_at', null)
+        ->first();   
+
+        $field_key_format = [
+            $field_key->_id => ""
+        ];
+
+        if (empty($field_data)) {
+
+            $language_code          = $board->board_default_language_code;
+
+            $field_key_value_format = [
+                $language_code => $field_key_format
+            ];
+
+            $data['component_id']    = $field_key->component_id;
+            $data['field_key_value'] = $field_key_value_format;
+            $data['created_at']      = Carbon::now()->format('Y-m-d H:i:s');
+            $data['updated_at']      = null;
+            $data['deleted_at']      = null;
+
+            FieldData::create($data);
+        }
+        else {
+            $field_key_value_formats = [];
+
+            $field_key_value_list = $field_data->field_key_value;
+
+            foreach ($field_key_value_list as $language_code => $language_field_data) {
+
+                // Add the new field key id only if it doesn't exist in the current language subarray
+                if (!isset($language_field_data[$field_key->_id])) {
+
+                    $merge = array_merge_recursive($language_field_data, $field_key_format);
+
+                    $field_key_value_format = [
+                        $language_code => $merge
+                    ];
+
+                    $field_key_value_formats[] = $field_key_value_format;
+                }
+            }
+
+            $data['field_key_value'] = array_merge(...$field_key_value_formats);
+
+            $field_data->update($data);
+        }
+    }
+
+    public function delete_field_key_from_field_data($field_key, $board)
+    {
+        $field_data = FieldData::where('component_id', $field_key->component_id)
+        ->where('deleted_at', null)
+        ->first();   
+
+        $field_key_value_formats = [];
+
+        $field_key_value_list = $field_data->field_key_value;
+
+        foreach ($field_key_value_list as $language_code => $language_field_data) {
+            // Check if the field_key_id exists in the current language subarray
+            if (isset($language_field_data[$field_key->_id])) {
+
+                // Remove the specific key from the language subarray
+                unset($field_key_value_list[$language_code][$field_key->_id]);
+
+                $field_key_value_formats[] = [
+                    $language_code => $field_key_value_list[$language_code]
+                ];
+            }
+        }
+        
+        $data['field_key_value'] = array_merge(...$field_key_value_formats);
+        $field_data->update($data);
+    
     }
 }

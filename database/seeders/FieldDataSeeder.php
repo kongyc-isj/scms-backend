@@ -21,18 +21,18 @@ class FieldDataSeeder extends Seeder
             'language_code' => ['en', 'zh-TW'],
             'field_key_value' => [
                 'en' => [
-                    'landing_index_username' => 'Username',
-                    'landing_index_password' => 'Password',
-                    'landing_index_login' => 'Login',
-                    'landing_index_demo' => 'Try For Free',
-                    'landing_index_error_msg' => 'Invalid username or password',
+                    '6593c0fcf2d5d4a05202f1b3' => 'Username',
+                    '6593c13bf2d5d4a05202f1b4' => 'Password',
+                    '6593c1cff2d5d4a05202f1b5' => 'Login',
+                    '6593e698f2d5d4a05202f1b6' => 'Try For Free',
+                    '659660cbf2d5d4a05202f1d9' => 'Invalid username or password',
                 ],
                 'zh-TW' => [
-                    'landing_index_username' => '用戶名稱',
-                    'landing_index_password' => '賬密',
-                    'landing_index_login' => '登錄',
-                    'landing_index_demo' => '試玩',
-                    'landing_index_error_msg' => '用戶名稱與賬密不匹配',
+                    '6593c0fcf2d5d4a05202f1b3' => '用戶名稱',
+                    '6593c13bf2d5d4a05202f1b4' => '賬密',
+                    '6593c1cff2d5d4a05202f1b5' => '登錄',
+                    '6593e698f2d5d4a05202f1b6' => '試玩',
+                    '659660cbf2d5d4a05202f1d9' => '用戶名稱與賬密不匹配',
                 ]
             ],
             'created_at' => '2023-11-07 04:02:44',

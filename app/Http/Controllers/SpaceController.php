@@ -27,8 +27,6 @@ class SpaceController extends Controller
             $data['updated_at']                              = null;
             $data['deleted_at']                              = null;
 
-            logger()->info($data);
-
             $space = Space::create($data);
 
             return response()->json(['space' => $space, 'message' => 'Space created successfully'], 200);
@@ -50,8 +48,6 @@ class SpaceController extends Controller
                 ->where('deleted_at', null)
                 ->get(['_id', 'space_name', 'space_description']);
             
-            logger()->info($owner_space);
-
             //retrieve data if have been invited to other's board
             $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
                 ->where('deleted_at', null)
@@ -71,8 +67,6 @@ class SpaceController extends Controller
                 ->get(['_id', 'space_name', 'space_description']);
 
             //merge the own created space list and get invited share boards' space list
-
-            logger()->info($space_from_share_board);
 
             $merged = [];
 
@@ -94,8 +88,6 @@ class SpaceController extends Controller
             
             $merged_result = array_values($merged);
 
-
-            logger()->info($merged_result);
             if(empty ($merged_result))
             {
                 return response()->json(['space' => [], 'message' => 'No match email with space'], 400);      
@@ -165,7 +157,6 @@ class SpaceController extends Controller
 
             $email = $request->email;
 
-            logger()->info($request);
             $data = $request->only(['space_name', 'space_description']);
 
             $space = Space::where('_id', $id)
@@ -173,7 +164,6 @@ class SpaceController extends Controller
                 ->first();
 
             if (!$space) {
-                logger()->info($space);
                 return response()->json(['message' => 'Space not found']);
             }
 
