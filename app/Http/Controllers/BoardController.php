@@ -15,13 +15,19 @@ class BoardController extends Controller
     {
         try
         {
+            $request->validate([
+                'space_id' => 'required|string'
+            ]);
+
             $email = $request->input('email');
 
             $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
+                ->where('space_id', $request['space_id'])
                 ->where('deleted_at', null)
                 ->get(['_id', 'board_name', 'board_description', 'board_default_language_code', 'board_api_key']);
 
             $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
+                ->where('space_id', $request['space_id'])
                 ->where('deleted_at', null)
                 ->get(['_id', 'board_name', 'board_description', 'board_default_language_code', 'board_api_key']);
 

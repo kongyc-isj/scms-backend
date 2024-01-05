@@ -90,7 +90,7 @@ class SpaceController extends Controller
 
             if(empty ($merged_result))
             {
-                return response()->json(['space' => [], 'message' => 'No match email with space'], 400);      
+                return response()->json(['space' => [], 'message' => 'No match email with space'], 200);      
             }
 
             return response()->json(['space' => $merged_result, 'message' => 'Space show successfully'], 200);
