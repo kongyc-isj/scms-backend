@@ -53,10 +53,10 @@ class BoardController extends Controller
 
             if(empty ($merged_result))
             {
-                return response()->json(['space' => [], 'message' => 'No match email with space'], 400);      
+                return response()->json(['board' => [], 'message' => 'No match email with board'], 200);      
             }
 
-            return response()->json(['space' => $merged_result, 'message' => 'Space show successfully'], 200);
+            return response()->json(['board' => $merged_result, 'message' => 'Board show successfully'], 200);
         }
         catch (\Exception $e) {
             logger()->error($e);
