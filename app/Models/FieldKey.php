@@ -8,6 +8,7 @@ use Jenssegers\Mongodb\Eloquent\Model;
 class FieldKey extends Model
 {
     use HasFactory;
+    protected $collection = 'field_key';
 
     protected $fillable = [
         'component_id',
