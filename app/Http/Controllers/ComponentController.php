@@ -15,9 +15,8 @@ class ComponentController extends Controller
         $board = Board::where('_id', $board_id)
             ->where('deleted_at', null)
             ->first();  
-
         if (!$board) {
-            return response()->json(['message' => 'Board not found'], 404);
+            return response()->json(['message' => 'Board not found'], 422);
         }
 
         $owner_board  = Board::where('board_owner_user.board_owner_email', $email)->first();
@@ -36,7 +35,7 @@ class ComponentController extends Controller
             {
                 $component = Component::where('board_id', $board_id)
                     ->where('deleted_at', null)
-                    ->get(['_id', 'component_name', 'component_description']); 
+                    ->get(['_id', 'component_name', 'component_description', 'updated_at']); 
 
                 return response()->json(['component' => $component, 'message' => 'Component show successfully'], 200);
                 }
@@ -44,7 +43,7 @@ class ComponentController extends Controller
             {
                 $component = Component::where('_id', $component_id)
                     ->where('deleted_at', null)
-                    ->first();
+                    ->first(['_id', 'component_name', 'component_description', 'updated_at']);
 
                 return response()->json(['component' => $component, 'message' => 'Component show successfully'], 200);
             }
@@ -70,7 +69,7 @@ class ComponentController extends Controller
             }            
             else
             {
-                return response()->json(['message' => 'method not found'], 404);
+                return response()->json(['message' => 'method not found'], 422);
             }
 
         } 
@@ -91,7 +90,7 @@ class ComponentController extends Controller
                 } 
                 else 
                 {
-                    return response()->json(['message' => 'Permission denied'], 404);
+                    return response()->json(['message' => 'Permission denied'], 422);
                 }
             }
             elseif($method == "index")
@@ -104,7 +103,7 @@ class ComponentController extends Controller
                 } 
                 else 
                 {
-                    return response()->json(['message' => 'Permission denied'], 404);
+                    return response()->json(['message' => 'Permission denied'], 422);
                 }
             }
             elseif($method == "show")
@@ -119,7 +118,7 @@ class ComponentController extends Controller
                 } 
                 else 
                 {
-                    return response()->json(['message' => 'Permission denied'], 404);
+                    return response()->json(['message' => 'Permission denied'], 422);
                 }
             }
             elseif($method == "update")
@@ -136,7 +135,7 @@ class ComponentController extends Controller
                 } 
                 else 
                 {
-                    return response()->json(['message' => 'Permission denied'], 404);
+                    return response()->json(['message' => 'Permission denied'], 422);
                 }
             }
             elseif($method == "destroy")
@@ -153,18 +152,18 @@ class ComponentController extends Controller
                 } 
                 else 
                 {
-                    return response()->json(['message' => 'Permission denied'], 404);
+                    return response()->json(['message' => 'Permission denied'], 422);
                 }
             }
             else
             {
-                return response()->json(['message' => 'method not found'], 404);
+                return response()->json(['message' => 'method not found'], 422);
             }
         } 
         else 
         {
-            return response()->json(['message' => 'Email does not exist'], 404);
-        }  
+            return response()->json(['message' => 'Email does not exist'], 422);
+        }    
     }
 
     /**
@@ -189,7 +188,7 @@ class ComponentController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => 'Internal Server Error'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }    
     }
 
@@ -205,7 +204,7 @@ class ComponentController extends Controller
             $request->validate([
                 'board_id' => 'required|string',
                 'component_name' => 'required|string',
-                'component_description' => 'required|string'
+                'component_description' => 'sometimes|string'
             ]);
 
             $data = $request->all();
@@ -216,11 +215,20 @@ class ComponentController extends Controller
             $data['updated_at'] = null;
             $data['deleted_at'] = null;
 
+            $check_component = Board::where('component_name', $data['component_name'])
+            ->where('board_id', $data['board_id'])
+            ->where('deleted_at', null)
+            ->first();  
+
+            if (!empty($check_component)) {
+                logger()->info($check_component);
+                return response()->json(['message' => 'Component name cannot duplicate'], 422);
+            }
+
             return $this->component_permission($board_id, $request['email'], $data, null, 'store');
             
         } catch (\Exception $e) {
-            logger()->error($e);
-            return response()->json(['error' => 'Internal Server Error'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }   
     }
 
@@ -243,7 +251,7 @@ class ComponentController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => 'Internal Server Error'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }   
     }
 
@@ -259,7 +267,7 @@ class ComponentController extends Controller
         try{
             $request->validate([
                 'component_name'        => 'required|string',
-                'component_description' => 'required|string'
+                'component_description' => 'sometimes|string'
             ]);
 
             $data               = $request->only(['component_name', 'component_description']);
@@ -270,14 +278,25 @@ class ComponentController extends Controller
                 ->first();     
 
             if (!$component) {
-                return response()->json(['message' => 'Component not found']);
+                return response()->json(['message' => 'Component not found'], 422);
+            }
+
+            $check_component = Component::where('component_name', $data['component_name'])
+                ->where('board_id', $component['space_id'])
+                ->where('_id', '!=', $component['_id']) // Use '!=' to check not equal
+                ->where('deleted_at', null)
+                ->first(); 
+
+            if (!empty($check_component)) {
+                logger()->info($check_component);
+                return response()->json(['message' => 'Component name cannot be duplicate'], 422);
             }
 
             return $this->component_permission($component->board_id, $request['email'], $data, $id, 'update');
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => 'Internal Server Error'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }   
     }
     /**
@@ -296,14 +315,14 @@ class ComponentController extends Controller
                 ->first(); 
 
             if (!$component) {
-                return response()->json(['message' => 'Component not found'], 404);
+                return response()->json(['message' => 'Component not found'], 422);
             }
 
             return $this->component_permission($component->board_id, $request['email'], $data, $id, 'destroy');
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => 'Internal Server Error'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         } 
     }
 }
