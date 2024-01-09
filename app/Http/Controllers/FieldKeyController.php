@@ -242,6 +242,19 @@ class FieldKeyController extends Controller
             $data['updated_at'] = null;
             $data['deleted_at'] = null;
 
+            $component = Component::where('_id', $request['component_id'])
+                ->where('deleted_at', null)
+                ->first();  
+                
+            $field_key = FieldKey::where('field_key_name', $request['field_key_name'])
+                ->where('component_id', $component->_id)
+                ->where('deleted_at', null)
+                ->first();   
+
+            if (!empty($field_key)) {
+                return response()->json(['message' => 'Field key name is used'], 422);
+            }
+
             $field_type = FieldType::where('deleted_at', null)
                 ->get(['field_type_name']);     
             
@@ -284,6 +297,20 @@ class FieldKeyController extends Controller
 
             if (!$field_key) {
                 return response()->json(['message' => 'Field key not found'], 404);
+            }
+
+            $component = Component::where('_id', $field_key->component_id)
+            ->where('deleted_at', null)
+            ->first();  
+            
+            $check_field_key = FieldKey::where('field_key_name', $request['field_key_name'])
+                ->where('component_id', $component['_id'])
+                ->where('_id', '!=', $field_key['_id']) // Use '!=' to check not equal
+                ->where('deleted_at', null)
+                ->first();   
+
+            if (!empty($check_field_key)) {
+                return response()->json(['message' => 'Field key name is used'], 422);
             }
 
             // Update the field key
