@@ -20,7 +20,7 @@ class FieldDataController extends Controller
             ->first();   
 
         if (!$component) {
-            return response()->json(['message' => 'Component not found'], 404);
+            return response()->json(['message' => 'Component not found'], 422);
         }
 
         $board = Board::where('_id', $component->board_id)
@@ -28,7 +28,7 @@ class FieldDataController extends Controller
             ->first();  
 
         if (!$board) {
-            return response()->json(['message' => 'Board not found'], 404);
+            return response()->json(['message' => 'Board not found'], 422);
         }
 
         $field_data = FieldData::where('component_id', $component->id)
@@ -36,7 +36,7 @@ class FieldDataController extends Controller
         ->first(); 
 
         if (!$field_data) {
-            return response()->json(['error' => 'Field Data not found'], 404);
+            return response()->json(['error' => 'Field Data not found'], 422);
         }
 
         $field_key = FieldKey::where('component_id', $component->_id)
@@ -44,7 +44,7 @@ class FieldDataController extends Controller
         ->get();
 
         if (!$field_key) {
-            return response()->json(['error' => 'Field Key not found'], 404);
+            return response()->json(['error' => 'Field Key not found'], 422);
         }
 
         $owner_board           = Board::where('board_owner_user.board_owner_email', $email)->first();
@@ -59,20 +59,23 @@ class FieldDataController extends Controller
             {
                 //if valid language given but it is no recorded then return error
                 if (!array_key_exists($language_code, $field_key_value_list)) {
-                    return response()->json(['error' => "Language code '$language_code' not found in field data."], 404);
+                    return response()->json(['error' => "Language code '$language_code' not found in field data."], 422);
                 }
 
                 $data = $field_key_value_list[$language_code];
+
                 //prepare api return format
                 $mapped_data = [];
                 foreach ($data as $field_key_id => $field_value) {
                     foreach ($field_key as $each_field_key) {
                         if ($each_field_key['_id'] === $field_key_id) {
-                            $mapped_data[$field_key_id] = [
+                            $each_map_data = [
+                                "field_key_id" => $field_key_id,
                                 "value" => $field_value,
                                 "field_key_name" => $each_field_key['field_key_name'],
                                 "field_type_name" => $each_field_key['field_type_name'],
                             ];
+                            $mapped_data[] = $each_map_data;
                             break;
                         }
                     }
@@ -99,7 +102,7 @@ class FieldDataController extends Controller
                 $language_exist = in_array($language_code, array_column($language_list, 'language_code'));
 
                 if (!$language_exist) {
-                    return response()->json(['error' => "Language code '$language_code' does not exist in the language data."], 404);
+                    return response()->json(['error' => "Language code '$language_code' does not exist in the language data."], 422);
                 } 
 
                 $field_key_value_format = [
@@ -131,7 +134,7 @@ class FieldDataController extends Controller
             }               
             else
             {
-                return response()->json(['message' => 'method not found'], 404);
+                return response()->json(['message' => 'method not found'], 422);
             }
         } 
         elseif ($shared_board) 
@@ -145,23 +148,25 @@ class FieldDataController extends Controller
             if($method == "show")
             {
                 if ($sharedUser['board_shared_user_read_access'] == 1) {
-
                     //if valid language given but it is no recorded then return error
                     if (!array_key_exists($language_code, $field_key_value_list)) {
-                        return response()->json(['error' => "Language code '$language_code' not found in field data."], 404);
+                        return response()->json(['error' => "Language code '$language_code' not found in field data."], 422);
                     }
-
+                
                     $data = $field_key_value_list[$language_code];
+                
                     //prepare api return format
                     $mapped_data = [];
                     foreach ($data as $field_key_id => $field_value) {
                         foreach ($field_key as $each_field_key) {
                             if ($each_field_key['_id'] === $field_key_id) {
-                                $mapped_data[$field_key_id] = [
+                                $each_map_data = [
+                                    "field_key_id" => $field_key_id,
                                     "value" => $field_value,
                                     "field_key_name" => $each_field_key['field_key_name'],
                                     "field_type_name" => $each_field_key['field_type_name'],
                                 ];
+                                $mapped_data[] = $each_map_data;
                                 break;
                             }
                         }
@@ -170,7 +175,7 @@ class FieldDataController extends Controller
                 } 
                 else 
                 {
-                    return response()->json(['message' => 'Permission denied'], 404);
+                    return response()->json(['message' => 'Permission denied'], 422);
                 }
             }
             elseif($method == "update")
@@ -195,7 +200,7 @@ class FieldDataController extends Controller
                     $language_exist = in_array($language_code, array_column($language_list, 'language_code'));
     
                     if (!$language_exist) {
-                        return response()->json(['error' => "Language code '$language_code' does not exist in the language data."], 404);
+                        return response()->json(['error' => "Language code '$language_code' does not exist in the language data."], 422);
                     } 
     
                     $field_key_value_format = [
@@ -217,7 +222,7 @@ class FieldDataController extends Controller
                     } else {
                         // Insert the whole object with the new language code
                         $merge = array_merge_recursive($field_key_value_list, $field_key_value_format);
-                        $data['field_key_value'] = $merge;
+                        $data['field_key_value'] = $merge;    
                     }
         
                     // Update the data
@@ -227,17 +232,17 @@ class FieldDataController extends Controller
                 } 
                 else 
                 {
-                    return response()->json(['message' => 'Permission denied'], 404);
+                    return response()->json(['message' => 'Permission denied'], 422);
                 }
             }
             else
             {
-                return response()->json(['message' => 'method not found'], 404);
+                return response()->json(['message' => 'method not found'], 422);
             }
         } 
         else 
         {
-            return response()->json(['message' => 'Email does not exist'], 404);
+            return response()->json(['message' => 'Email does not exist'], 422);
         }  
     }
 
@@ -281,7 +286,7 @@ class FieldDataController extends Controller
             ->first();   
 
             if (empty($field_data)) {
-                return response()->json(['error' => 'Field data no exist'], 404);
+                return response()->json(['error' => 'Field data no exist'], 422);
             }
 
             $field_data->delete();
@@ -303,7 +308,7 @@ class FieldDataController extends Controller
     
             if (!empty($missing_ids)) {
                 // Handle the case where some expected '_id' values are missing
-                return response()->json(['error' => 'Missing Field Key: ' . implode(', ', $missing_ids)], 404);
+                return response()->json(['error' => 'Missing Field Key: ' . implode(', ', $missing_ids)], 422);
             }
 
             // Check if all '_id' values in $field_data_values exist in $field_key
@@ -312,7 +317,7 @@ class FieldDataController extends Controller
             if (!empty($not_found_ids)) {
     
                 // Handle the case where some '_id' values in $field_data_values are not found in $field_key
-                return response()->json(['error' => 'Field Key not found: ' . implode(', ', $not_found_ids)], 404);
+                return response()->json(['error' => 'Field Key not found: ' . implode(', ', $not_found_ids)], 422);
             }
         }
         catch (\Exception $e) {
@@ -329,12 +334,15 @@ class FieldDataController extends Controller
                 $field_key_collection = collect($field_key_array)->firstWhere('_id', $field_key_id);
             
                 if (!$field_key_collection) {
-                    return response()->json(['error' => "Field Key with _id: $field_key_id not found"], 404);
+                    return response()->json(['error' => "Field Key with _id: $field_key_id not found"], 422);
                 }
             
                 // Validate the value based on field_type_name
                 $field_type_name = $field_key_collection['field_type_name'];
-            
+
+                if(empty($field_data))
+                    break;
+
                 switch ($field_type_name) {
                     case 'short_text':
                     case 'long_text':
