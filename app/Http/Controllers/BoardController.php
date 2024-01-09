@@ -55,14 +55,14 @@ class BoardController extends Controller
 
             if(empty ($merged_result))
             {
-                return response()->json(['board' => [], 'message' => 'No match email with board'], 200);      
+                return response()->json(['board' => [], 'message' => 'No match email with board'], 422);      
             }
 
             return response()->json(['board' => $merged_result, 'message' => 'Board show successfully'], 200);
         }
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['error' => $e->getMessage()], 500);
         }   
     }
 
@@ -78,7 +78,7 @@ class BoardController extends Controller
             ->first();  
 
             if (!$board) {
-                return response()->json(['message' => 'Board not found'], 200);
+                return response()->json(['message' => 'Board not found'], 422);
             }      
 
             $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
@@ -101,12 +101,12 @@ class BoardController extends Controller
             }
             else
             {
-                return response()->json(['board' => [], 'message' => 'No match email with board'], 200);
+                return response()->json(['board' => [], 'message' => 'No match email with board'], 422);
             }
         }
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['error' => $e->getMessage()], 500);
         }  
     }
 
@@ -115,11 +115,16 @@ class BoardController extends Controller
         try
         {
             $request->validate([
-                'space_id'                           => 'required|string',
-                'board_name'                         => 'required|string',
-                'board_description'                  => 'required|string',
-                'board_default_language_code'        => 'required|string',
-                'board_share_user'                   => 'sometimes|string'
+                'space_id' => 'required|string',
+                'board_name' => 'required|string',
+                'board_description' => 'required|string',
+                'board_default_language_code' => 'required|string',
+                'board_shared_user' => 'nullable|array',
+                'board_shared_user.*.board_shared_user_email' => 'nullable|email',
+                'board_shared_user.*.board_shared_user_create_access' => 'nullable|integer',
+                'board_shared_user.*.board_shared_user_read_access' => 'nullable|integer',
+                'board_shared_user.*.board_shared_user_update_access' => 'nullable|integer',
+                'board_shared_user.*.board_shared_user_delete_access' => 'nullable|integer'
             ]);
 
             $email    = $request->input('email');
@@ -130,10 +135,14 @@ class BoardController extends Controller
 
             if (!$language) {
                 return response()->json(['message' => 'Language not found'], 200);
-            }      
+            }   
+            
+            $board_shared_user = $request['board_shared_user'];
+
             $data['board_owner_user']['board_owner_email']   = $email;
             $data['board_api_key']                           = Uuid::uuid4()->toString();
             $data['board_owner_user']['board_owner_api_key'] = Uuid::uuid4()->toString();
+            $data['board_shared_user']                       = (empty($board_shared_user)) ? [] : $board_shared_user;
             $data['created_at']                              = Carbon::now()->format('Y-m-d H:i:s');
             $data['updated_at']                              = null;
             $data['deleted_at']                              = null;
@@ -145,7 +154,7 @@ class BoardController extends Controller
 
             if (!empty($check_board)) {
                 logger()->info($check_board);
-                return response()->json(['message' => 'Board name cannot duplicate'], 200);
+                return response()->json(['message' => 'Board name cannot duplicate'], 422);
             }
 
             $board = Board::create($data);
@@ -155,7 +164,7 @@ class BoardController extends Controller
         }
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['error' => $e->getMessage()], 500);
         }   
     }
 
@@ -180,7 +189,7 @@ class BoardController extends Controller
 
             if (empty($owner_board)) {
                 logger()->info($owner_board);
-                return response()->json(['message' => 'Board not found'], 200);
+                return response()->json(['message' => 'Board not found'], 422);
             }
 
             $check_board = Board::where('board_name', $data['board_name'])
@@ -191,7 +200,7 @@ class BoardController extends Controller
 
             if (!empty($check_board)) {
                 logger()->info($check_board);
-                return response()->json(['message' => 'Board name cannot be duplicate'], 200);
+                return response()->json(['message' => 'Board name cannot be duplicate'], 422);
             }
 
             $language = Language::where('language_code', $data['board_default_language_code'])
@@ -199,7 +208,7 @@ class BoardController extends Controller
                 ->first();  
 
             if (!$language) {
-                return response()->json(['message' => 'Language not found'], 200);
+                return response()->json(['message' => 'Language not found'], 422);
             }
 
             $share_user_array  = $request->input('board_shared_user');
@@ -214,7 +223,7 @@ class BoardController extends Controller
                     // Update existing user data
                     $board_share_users[$index] = $share_user;
                 } else {
-                    return response()->json(['message' => 'Shared user not found'], 200);
+                    $board_share_users[] = $share_user;
                 }
             }
 
@@ -225,7 +234,7 @@ class BoardController extends Controller
         }
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['message' => $e->getMessage()], 500);
         }   
     }
 
@@ -238,12 +247,12 @@ class BoardController extends Controller
             $board = Board::find($id);
 
             if (!$board) {
-                return response()->json(['message' => 'Board not found'], 200);
+                return response()->json(['message' => 'Board not found'], 422);
             }
 
             // Check if the provided email matches the board_owner_user_email
             if ($email !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Share user does not have permission to delete board'], 200);
+                return response()->json(['message' => 'Share user does not have permission to delete board'], 422);
             }
 
             $data['deleted_at'] = Carbon::now()->format('Y-m-d H:i:s');
@@ -253,7 +262,7 @@ class BoardController extends Controller
         }
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['message' => $e], 500);
         }   
     }
 
@@ -265,11 +274,11 @@ class BoardController extends Controller
             $board = Board::find($id);
 
             if (!$board) {
-                return response()->json(['message' => 'Board not found'], 200);
+                return response()->json(['message' => 'Board not found'], 422);
             }
 
             if ($email !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Share user does not have permission to get share user list'], 200);
+                return response()->json(['message' => 'Share user does not have permission to get share user list'], 422);
             }
 
             $shareUsers = $board['board_shared_user'];
@@ -278,7 +287,7 @@ class BoardController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
     
@@ -297,12 +306,12 @@ class BoardController extends Controller
             $board = Board::find($id);
 
             if (!$board) {
-                return response()->json(['message' => 'Board not found'], 200);
+                return response()->json(['message' => 'Board not found'], 422);
             }
 
             // Check if the provided email matches the board_owner_email
             if ($email !== $board['board_owner_user']['board_owner_email']) {
-                return response()->json(['message' => 'Share user does not have permission to create share user'], 200);
+                return response()->json(['message' => 'Share user does not have permission to create share user'], 422);
             }
 
             // Extract the single board_shared_user data from the request
@@ -326,7 +335,7 @@ class BoardController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -370,11 +379,11 @@ class BoardController extends Controller
                 return response()->json(['message' => 'Board share user updated successfully'], 200);
             } 
             else {
-                return response()->json(['message' => 'Shared user not found'], 200);
+                return response()->json(['message' => 'Shared user not found'], 422);
             }
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -390,7 +399,7 @@ class BoardController extends Controller
             $board = Board::find($id);
 
             if (!$board) {
-                return response()->json(['message' => 'Board not found'], 200);
+                return response()->json(['message' => 'Board not found'], 422);
             }
 
             // Check if the provided email matches the board_owner_email
@@ -408,7 +417,7 @@ class BoardController extends Controller
             $notFoundEmails = array_diff($sharedUserEmailsToDelete, $boardSharedUserEmails);
 
             if (!empty($notFoundEmails)) {
-                return response()->json(['message' => 'Some emails not found', 'not_found_emails' => $notFoundEmails], 200);
+                return response()->json(['message' => 'Some emails not found', 'not_found_emails' => $notFoundEmails], 422);
             }
             
             // Remove shared users with matching email addresses
@@ -422,7 +431,7 @@ class BoardController extends Controller
             return response()->json(['message' => 'Board shared users deleted successfully'], 200);
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -454,7 +463,7 @@ class BoardController extends Controller
         }
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => $e], 200);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }
