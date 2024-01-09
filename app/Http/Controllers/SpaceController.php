@@ -27,13 +27,22 @@ class SpaceController extends Controller
             $data['updated_at']                              = null;
             $data['deleted_at']                              = null;
 
+            $check_space = Space::where('space_name', $data['space_name'])
+                ->where('deleted_at', null)
+                ->first();  
+
+            if (!empty($check_space)) {
+                logger()->info($check_space);
+                return response()->json(['message' => 'Space name is used'], 422);
+            }
+
             $space = Space::create($data);
 
             return response()->json(['space' => $space, 'message' => 'Space created successfully'], 200);
         } 
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }    
     }
 
@@ -90,7 +99,7 @@ class SpaceController extends Controller
 
             if(empty ($merged_result))
             {
-                return response()->json(['space' => [], 'message' => 'No match email with space'], 200);      
+                return response()->json(['space' => [], 'message' => 'No match email with space'], 422);      
             }
 
             return response()->json(['space' => $merged_result, 'message' => 'Space show successfully'], 200);
@@ -98,7 +107,7 @@ class SpaceController extends Controller
         } 
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }  
     }   
 
@@ -114,7 +123,7 @@ class SpaceController extends Controller
             ->first();  
 
             if (!$space) {
-                return response()->json(['message' => 'Space not found'], 404);
+                return response()->json(['message' => 'Space not found'], 422);
             }      
 
             $owner_space  = Space::where('space_owner_user.space_owner_user_email', $email)
@@ -137,12 +146,12 @@ class SpaceController extends Controller
             }
             else
             {
-                return response()->json(['space' => [], 'message' => 'No match email with space'], 400);
+                return response()->json(['space' => [], 'message' => 'No match email with space'], 422);
             }
         }
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }  
     }
         
@@ -158,18 +167,28 @@ class SpaceController extends Controller
             $email = $request->email;
 
             $data = $request->only(['space_name', 'space_description']);
-
+            
             $space = Space::where('_id', $id)
                 ->where('deleted_at', null)
                 ->first();
 
             if (!$space) {
-                return response()->json(['message' => 'Space not found']);
+                return response()->json(['message' => 'Space not found'], 422);
+            }
+
+            $check_space = Space::where('space_name', $data['space_name'])
+            ->where('_id', '!=', $id) // Use '!=' to check not equal
+            ->where('deleted_at', null)
+            ->first(); 
+
+            if (!empty($check_space)) {
+                logger()->info($check_space);
+                return response()->json(['message' => 'Space name is used'], 422);
             }
 
             // Check if the provided email matches the space_owner_user_email
             if ($email !== $space['space_owner_user']['space_owner_user_email']) {
-                return response()->json(['message' => 'Email does not match space owner email']);
+                return response()->json(['message' => 'Email does not match space owner email'], 422);
             }
 
             $space->update($data);
@@ -178,7 +197,7 @@ class SpaceController extends Controller
         }  
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }  
     }
 
@@ -193,22 +212,22 @@ class SpaceController extends Controller
                 ->first();
 
             if (empty($space)) {
-                return response()->json(['message' => 'Space not found']);
+                return response()->json(['message' => 'Space not found'], 422);
             }
 
             // Check if the provided email matches the space_owner_user_email
             if ($email !== $space['space_owner_user']['space_owner_user_email']) {
-                return response()->json(['message' => 'Email does not match space owner email']);
+                return response()->json(['message' => 'Email does not match space owner email'], 422);
             }
 
             $data['deleted_at'] = Carbon::now()->format('Y-m-d H:i:s');
             $space->update($data);
 
-            return response()->json(['message' => 'Space deleted successfully']);
+            return response()->json(['message' => 'Space deleted successfully'], 200);
         }  
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }  
     }
 
@@ -222,7 +241,7 @@ class SpaceController extends Controller
                 ->first();
 
             if (!$space) {
-                return response()->json(['message' => 'Space not found'], 404);
+                return response()->json(['message' => 'Space not found'], 422);
             }
 
             // Check if the provided email matches the space_owner_user_email
@@ -236,7 +255,7 @@ class SpaceController extends Controller
         }  
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }  
     }
     
@@ -254,7 +273,7 @@ class SpaceController extends Controller
                 ->first();
 
             if (!$space) {
-                return response()->json(['message' => 'Space not found'], 404);
+                return response()->json(['message' => 'Space not found'], 422);
             }
 
             // Check if the provided email matches the space_owner_user_email
@@ -282,11 +301,11 @@ class SpaceController extends Controller
                 $space->push('space_shared_user', ['space_shared_user_email' => $newSpaceSharedUserEmail]);
             }
 
-            return response()->json(['message' => 'Space share user insert successfully']);
+            return response()->json(['message' => 'Space share user insert successfully'], 200);
         }  
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }  
     }
 
@@ -304,7 +323,7 @@ class SpaceController extends Controller
                 ->first();
 
             if (!$space) {
-                return response()->json(['message' => 'Space not found'], 404);
+                return response()->json(['message' => 'Space not found'], 422);
             }
 
             // Check if the provided email matches the space_owner_user_email
@@ -329,11 +348,11 @@ class SpaceController extends Controller
             // Save the updated space document
             $space->save();
 
-            return response()->json(['message' => 'Space shared user deleted successfully']);
+            return response()->json(['message' => 'Space shared user deleted successfully'], 200);
         }  
         catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }  
     }
 }
