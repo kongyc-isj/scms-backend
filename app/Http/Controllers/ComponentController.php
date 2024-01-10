@@ -215,7 +215,7 @@ class ComponentController extends Controller
             $data['updated_at'] = null;
             $data['deleted_at'] = null;
 
-            $check_component = Board::where('component_name', $data['component_name'])
+            $check_component = Component::where('component_name', $data['component_name'])
             ->where('board_id', $data['board_id'])
             ->where('deleted_at', null)
             ->first();  

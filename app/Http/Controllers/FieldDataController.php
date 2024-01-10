@@ -66,11 +66,11 @@ class FieldDataController extends Controller
 
                 //prepare api return format
                 $mapped_data = [];
-                foreach ($data as $field_key_id => $field_value) {
+                foreach ($data as $field_key_name => $field_value) {
                     foreach ($field_key as $each_field_key) {
-                        if ($each_field_key['_id'] === $field_key_id) {
+                        if ($each_field_key['field_key_name'] === $field_key_name) {
                             $each_map_data = [
-                                "field_key_id" => $field_key_id,
+                                "field_key_id" => $each_field_key['_id'],
                                 "value" => $field_value,
                                 "field_key_name" => $each_field_key['field_key_name'],
                                 "field_type_name" => $each_field_key['field_type_name'],
@@ -157,11 +157,11 @@ class FieldDataController extends Controller
                 
                     //prepare api return format
                     $mapped_data = [];
-                    foreach ($data as $field_key_id => $field_value) {
+                    foreach ($data as $field_key_name => $field_value) {
                         foreach ($field_key as $each_field_key) {
-                            if ($each_field_key['_id'] === $field_key_id) {
+                            if ($each_field_key['field_key_name'] === $field_key_name) {
                                 $each_map_data = [
-                                    "field_key_id" => $field_key_id,
+                                    "field_key_id" => $each_field_key['_id'],
                                     "value" => $field_value,
                                     "field_key_name" => $each_field_key['field_key_name'],
                                     "field_type_name" => $each_field_key['field_type_name'],
@@ -301,23 +301,23 @@ class FieldDataController extends Controller
     public function validate_field_key_id ($field_key_array, $field_key_value)
     {
         try{
-            $expected_ids = array_column($field_key_array, '_id');
+            $expected_field_key_names = array_column($field_key_array, 'field_key_name');
 
             // Check if all expected '_id' values are present in $field_key
-            $missing_ids = array_diff($expected_ids, array_keys($field_key_value));
+            $missing_field_key_names = array_diff($expected_field_key_names, array_keys($field_key_value));
     
-            if (!empty($missing_ids)) {
+            if (!empty($missing_field_key_names)) {
                 // Handle the case where some expected '_id' values are missing
-                return response()->json(['error' => 'Missing Field Key: ' . implode(', ', $missing_ids)], 422);
+                return response()->json(['error' => 'Missing Field Key: ' . implode(', ', $missing_field_key_names)], 422);
             }
 
             // Check if all '_id' values in $field_data_values exist in $field_key
-            $not_found_ids = array_diff(array_keys($field_key_value), array_column($field_key_array, '_id'));
+            $not_found_field_key_names = array_diff(array_keys($field_key_value), array_column($field_key_array, 'field_key_name'));
 
-            if (!empty($not_found_ids)) {
+            if (!empty($not_found_field_key_names)) {
     
                 // Handle the case where some '_id' values in $field_data_values are not found in $field_key
-                return response()->json(['error' => 'Field Key not found: ' . implode(', ', $not_found_ids)], 422);
+                return response()->json(['error' => 'Field Key not found: ' . implode(', ', $not_found_field_key_names)], 422);
             }
         }
         catch (\Exception $e) {
@@ -329,12 +329,12 @@ class FieldDataController extends Controller
     public function validate_field_type ($field_key_array, $field_key_value)
     {
         try{
-            foreach ($field_key_value as $field_key_id => $field_value) {
+            foreach ($field_key_value as $field_key_name => $field_value) {
                 // Find the corresponding field key in the collection
-                $field_key_collection = collect($field_key_array)->firstWhere('_id', $field_key_id);
+                $field_key_collection = collect($field_key_array)->firstWhere('field_key_name', $field_key_name);
             
                 if (!$field_key_collection) {
-                    return response()->json(['error' => "Field Key with _id: $field_key_id not found"], 422);
+                    return response()->json(['error' => "Field Key with _id: $field_key_name not found"], 422);
                 }
             
                 // Validate the value based on field_type_name
@@ -349,7 +349,7 @@ class FieldDataController extends Controller
                     case 'rich_text':
                     case 'email':
                         if (!is_string($field_value)) {
-                            return response()->json(['error' => "Invalid value for $field_type_name field type for _id: $field_key_id"], 422);
+                            return response()->json(['error' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
                     case 'integer':
@@ -357,14 +357,14 @@ class FieldDataController extends Controller
                     case 'decimal':
                     case 'float':
                         if (!is_numeric($field_value)) {
-                            return response()->json(['error' => "Invalid value for $field_type_name field type for _id: $field_key_id"], 422);
+                            return response()->json(['error' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
                     case 'date':
                     case 'datetime':
                     case 'time':
                         if (!strtotime($field_value)) {
-                            return response()->json(['error' => "Invalid value for $field_type_name field type for _id: $field_key_id"], 422);
+                            return response()->json(['error' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
                     case 'media':
@@ -372,14 +372,14 @@ class FieldDataController extends Controller
                         break;
                     case 'boolean':
                         if (!is_bool($field_value)) {
-                            return response()->json(['error' => "Invalid value for $field_type_name field type for _id: $field_key_id"], 422);
+                            return response()->json(['error' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
                     case 'json':
                         // You may add specific validation logic for JSON type
                         break;
                     default:
-                        return response()->json(['error' => "Unsupported field_type_name: $field_type_name for _id: $field_key_id"], 422);
+                        return response()->json(['error' => "Unsupported field_type_name: $field_type_name for field key name: $field_key_name"], 422);
                 }
             }
         }

@@ -245,7 +245,12 @@ class FieldKeyController extends Controller
             $component = Component::where('_id', $request['component_id'])
                 ->where('deleted_at', null)
                 ->first();  
-                
+
+
+            if (empty($component)) {
+                return response()->json(['message' => 'Component not found'], 422);
+            }                
+
             $field_key = FieldKey::where('field_key_name', $request['field_key_name'])
                 ->where('component_id', $component->_id)
                 ->where('deleted_at', null)
@@ -351,7 +356,7 @@ class FieldKeyController extends Controller
         ->first();   
 
         $field_key_format = [
-            $field_key->_id => ""
+            $field_key->field_key_name => ""
         ];
 
         if (empty($field_data)) {
@@ -378,7 +383,7 @@ class FieldKeyController extends Controller
             foreach ($field_key_value_list as $language_code => $language_field_data) {
 
                 // Add the new field key id only if it doesn't exist in the current language subarray
-                if (!isset($language_field_data[$field_key->_id])) {
+                if (!isset($language_field_data[$field_key->field_key_name])) {
 
                     $merge = array_merge_recursive($language_field_data, $field_key_format);
 
