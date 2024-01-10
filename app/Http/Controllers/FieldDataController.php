@@ -340,9 +340,6 @@ class FieldDataController extends Controller
                 // Validate the value based on field_type_name
                 $field_type_name = $field_key_collection['field_type_name'];
 
-                if(empty($field_data))
-                    break;
-
                 switch ($field_type_name) {
                     case 'short_text':
                     case 'long_text':
