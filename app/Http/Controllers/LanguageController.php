@@ -21,7 +21,7 @@ class LanguageController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => 'Internal Server Error'], 500);
+            return response()->json(['message' => 'Internal Server Error'], 500);
         }
     }
 }

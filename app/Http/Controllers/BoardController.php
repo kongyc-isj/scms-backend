@@ -175,12 +175,11 @@ class BoardController extends Controller
             $request->validate([
                 'board_name'                  => 'required|string',
                 'board_description'           => 'required|string',
-                'board_default_language_code' => 'required|string',
                 'board_shared_user'           => 'sometimes|array'
             ]);
 
             $email = $request->input('email');
-            $data  = $request->only(['board_name', 'board_description', 'board_default_language_code']);
+            $data  = $request->only(['board_name', 'board_description']);
 
             $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
                 ->where('_id', $id)
@@ -203,13 +202,13 @@ class BoardController extends Controller
                 return response()->json(['message' => 'Board name cannot be duplicate'], 422);
             }
 
-            $language = Language::where('language_code', $data['board_default_language_code'])
-                ->where('deleted_at', null)
-                ->first();  
+            //$language = Language::where('language_code', $data['board_default_language_code'])
+            //    ->where('deleted_at', null)
+            //    ->first();  
 
-            if (!$language) {
-                return response()->json(['message' => 'Language not found'], 422);
-            }
+            //if (!$language) {
+            //    return response()->json(['message' => 'Language not found'], 422);
+            //}
 
             $share_user_array  = $request->input('board_shared_user');
             $board_share_users = $owner_board['board_shared_user'];

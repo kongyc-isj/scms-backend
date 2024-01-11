@@ -188,7 +188,7 @@ class ComponentController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }    
     }
 
@@ -228,7 +228,7 @@ class ComponentController extends Controller
             return $this->component_permission($board_id, $request['email'], $data, null, 'store');
             
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }   
     }
 
@@ -251,7 +251,7 @@ class ComponentController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }   
     }
 
@@ -296,7 +296,7 @@ class ComponentController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }   
     }
     /**
@@ -322,7 +322,7 @@ class ComponentController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         } 
     }
 }

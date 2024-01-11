@@ -201,7 +201,7 @@ class FieldKeyController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => 'Internal Server Error'], 500);
+            return response()->json(['message' => 'Internal Server Error'], 500);
         }    
     }
 
@@ -222,7 +222,7 @@ class FieldKeyController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => 'Internal Server Error'], 500);
+            return response()->json(['message' => 'Internal Server Error'], 500);
         }   
     }
 
@@ -273,14 +273,14 @@ class FieldKeyController extends Controller
             }
 
             if (!$field_type_exist) {
-                return response()->json(['error' => 'Field type no found'], 500);
+                return response()->json(['message' => 'Field type no found'], 500);
             }
 
             return $this->field_key_permission($request['component_id'], $request['email'], $data, null, 'store');
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => 'Internal Server Error'], 500);
+            return response()->json(['message' => 'Internal Server Error'], 500);
         }   
     }
 
@@ -323,7 +323,7 @@ class FieldKeyController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => "$e"], 500);
+            return response()->json(['message' => "$e"], 500);
         } 
     }
 
@@ -345,7 +345,7 @@ class FieldKeyController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['error' => "$e"], 500);
+            return response()->json(['message' => "$e"], 500);
         } 
     }
 

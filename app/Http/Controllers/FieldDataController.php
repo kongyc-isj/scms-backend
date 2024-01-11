@@ -36,7 +36,7 @@ class FieldDataController extends Controller
         ->first(); 
 
         if (!$field_data) {
-            return response()->json(['error' => 'Field Data not found'], 422);
+            return response()->json(['message' => 'Field Data not found'], 422);
         }
 
         $field_key = FieldKey::where('component_id', $component->_id)
@@ -44,7 +44,7 @@ class FieldDataController extends Controller
         ->get();
 
         if (!$field_key) {
-            return response()->json(['error' => 'Field Key not found'], 422);
+            return response()->json(['message' => 'Field Key not found'], 422);
         }
 
         $owner_board           = Board::where('board_owner_user.board_owner_email', $email)->first();
@@ -59,7 +59,7 @@ class FieldDataController extends Controller
             {
                 //if valid language given but it is no recorded then return error
                 if (!array_key_exists($language_code, $field_key_value_list)) {
-                    return response()->json(['error' => "Language code '$language_code' not found in field data."], 422);
+                    return response()->json(['field_data' => [], 'message' => "Language code '$language_code' not found in field data."], 200);
                 }
 
                 $data = $field_key_value_list[$language_code];
@@ -102,7 +102,7 @@ class FieldDataController extends Controller
                 $language_exist = in_array($language_code, array_column($language_list, 'language_code'));
 
                 if (!$language_exist) {
-                    return response()->json(['error' => "Language code '$language_code' does not exist in the language data."], 422);
+                    return response()->json(['message' => "Language code '$language_code' does not exist in the language data."], 422);
                 } 
 
                 $field_key_value_format = [
@@ -150,7 +150,7 @@ class FieldDataController extends Controller
                 if ($sharedUser['board_shared_user_read_access'] == 1) {
                     //if valid language given but it is no recorded then return error
                     if (!array_key_exists($language_code, $field_key_value_list)) {
-                        return response()->json(['error' => "Language code '$language_code' not found in field data."], 422);
+                    return response()->json(['field_data' => [], 'message' => "Language code '$language_code' not found in field data."], 200);
                     }
                 
                     $data = $field_key_value_list[$language_code];
@@ -200,7 +200,7 @@ class FieldDataController extends Controller
                     $language_exist = in_array($language_code, array_column($language_list, 'language_code'));
     
                     if (!$language_exist) {
-                        return response()->json(['error' => "Language code '$language_code' does not exist in the language data."], 422);
+                        return response()->json(['message' => "Language code '$language_code' does not exist in the language data."], 422);
                     } 
     
                     $field_key_value_format = [
@@ -270,7 +270,7 @@ class FieldDataController extends Controller
 
         }
         catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }
     }
 
@@ -286,7 +286,7 @@ class FieldDataController extends Controller
             ->first();   
 
             if (empty($field_data)) {
-                return response()->json(['error' => 'Field data no exist'], 422);
+                return response()->json(['message' => 'Field data no exist'], 422);
             }
 
             $field_data->delete();
@@ -294,7 +294,7 @@ class FieldDataController extends Controller
             return response()->json(['message' => 'Field data deleted successfully']);
         }
         catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }
     }
 
@@ -308,7 +308,7 @@ class FieldDataController extends Controller
     
             if (!empty($missing_field_key_names)) {
                 // Handle the case where some expected '_id' values are missing
-                return response()->json(['error' => 'Missing Field Key: ' . implode(', ', $missing_field_key_names)], 422);
+                return response()->json(['message' => 'Missing Field Key: ' . implode(', ', $missing_field_key_names)], 422);
             }
 
             // Check if all '_id' values in $field_data_values exist in $field_key
@@ -317,11 +317,11 @@ class FieldDataController extends Controller
             if (!empty($not_found_field_key_names)) {
     
                 // Handle the case where some '_id' values in $field_data_values are not found in $field_key
-                return response()->json(['error' => 'Field Key not found: ' . implode(', ', $not_found_field_key_names)], 422);
+                return response()->json(['message' => 'Field Key not found: ' . implode(', ', $not_found_field_key_names)], 422);
             }
         }
         catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }
 
     }
@@ -334,7 +334,7 @@ class FieldDataController extends Controller
                 $field_key_collection = collect($field_key_array)->firstWhere('field_key_name', $field_key_name);
             
                 if (!$field_key_collection) {
-                    return response()->json(['error' => "Field Key with _id: $field_key_name not found"], 422);
+                    return response()->json(['message' => "Field Key with _id: $field_key_name not found"], 422);
                 }
             
                 // Validate the value based on field_type_name
@@ -346,7 +346,7 @@ class FieldDataController extends Controller
                     case 'rich_text':
                     case 'email':
                         if (!is_string($field_value)) {
-                            return response()->json(['error' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
                     case 'integer':
@@ -354,14 +354,14 @@ class FieldDataController extends Controller
                     case 'decimal':
                     case 'float':
                         if (!is_numeric($field_value)) {
-                            return response()->json(['error' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
                     case 'date':
                     case 'datetime':
                     case 'time':
                         if (!strtotime($field_value)) {
-                            return response()->json(['error' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
                     case 'media':
@@ -369,19 +369,19 @@ class FieldDataController extends Controller
                         break;
                     case 'boolean':
                         if (!is_bool($field_value)) {
-                            return response()->json(['error' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
                     case 'json':
                         // You may add specific validation logic for JSON type
                         break;
                     default:
-                        return response()->json(['error' => "Unsupported field_type_name: $field_type_name for field key name: $field_key_name"], 422);
+                        return response()->json(['message' => "Unsupported field_type_name: $field_type_name for field key name: $field_key_name"], 422);
                 }
             }
         }
         catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }
 
     }
