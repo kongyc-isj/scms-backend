@@ -208,8 +208,8 @@ class BoardController extends Controller
             }
 
             $check_board_name = Board::where('board_name', $data['board_name'])
-                ->where('space_id', $owner_board['space_id'])
-                ->where('_id', '!=', $owner_board['_id']) // Use '!=' to check not equal
+                ->where('space_id', $board['space_id'])
+                ->where('_id', '!=', $board['_id']) // Use '!=' to check not equal
                 ->where('deleted_at', null)
                 ->first(); 
 
@@ -226,12 +226,12 @@ class BoardController extends Controller
             //}
 
             $share_user_array  = $request->input('board_shared_user');
-            $board_share_users = $owner_board['board_shared_user'];
+            $board_share_users = $board['board_shared_user'];
 
             //Update each shared user
             foreach ($share_user_array as $share_user) {
                 // Find the index of the matching shared user based on email
-                $index = array_search($share_user['board_shared_user_email'], array_column($owner_board['board_shared_user'], 'board_shared_user_email'));
+                $index = array_search($share_user['board_shared_user_email'], array_column($board['board_shared_user'], 'board_shared_user_email'));
 
                 if ($index !== false) {
                     // Update existing user data
@@ -242,7 +242,7 @@ class BoardController extends Controller
             }
 
             $data['board_shared_user'] = $board_share_users;
-            $owner_board->update($data);
+            $board->update($data);
 
             return response()->json(['message' => 'Board updated successfully'], 200);
         }
