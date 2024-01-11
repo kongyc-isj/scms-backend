@@ -60,6 +60,7 @@ Route::middleware(['api', 'validateAccessToken'])->group(function () {
     Route::get('/field_data', [FieldDataController::class, 'show']);
     Route::post('/field_data', [FieldDataController::class, 'update']);
     Route::delete('/field_data', [FieldDataController::class, 'destroy']);
+    Route::get('/field_data/field_data_language', [FieldDataController::class, 'field_data_language']);
 });
 
 Route::middleware(['api','apiKeyAuth'])->group(function(){

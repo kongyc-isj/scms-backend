@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Jenssegers\Mongodb\Eloquent\Model;
 use Carbon\Carbon;
+use App\Models\Space;
 use App\Models\Board;
 use App\Models\Language;
 use Ramsey\Uuid\Uuid;
@@ -55,7 +56,7 @@ class BoardController extends Controller
 
             if(empty ($merged_result))
             {
-                return response()->json(['board' => [], 'message' => 'No match email with board'], 422);      
+                return response()->json(['board' => [], 'message' => 'Board show successfully'], 200);      
             }
 
             return response()->json(['board' => $merged_result, 'message' => 'Board show successfully'], 200);
@@ -147,6 +148,18 @@ class BoardController extends Controller
             $data['updated_at']                              = null;
             $data['deleted_at']                              = null;
 
+            $space = Space::where('_id', $request['space_id'])
+                ->where('deleted_at', null)
+                ->first();
+            
+            if (empty($space)) {
+                return response()->json(['message' => 'Space no found'], 422);
+            }
+
+            if ($email !== $space['space_owner_user']['space_owner_user_email']) {
+                return response()->json(['message' => 'Only space owner can create board'], 422);
+            }
+
             $check_board = Board::where('board_name', $data['board_name'])
                 ->where('space_id', $data['space_id'])
                 ->where('deleted_at', null)
@@ -154,7 +167,7 @@ class BoardController extends Controller
 
             if (!empty($check_board)) {
                 logger()->info($check_board);
-                return response()->json(['message' => 'Board name cannot duplicate'], 422);
+                return response()->json(['message' => 'Board name has been taken in this space'], 422);
             }
 
             $board = Board::create($data);
@@ -181,25 +194,27 @@ class BoardController extends Controller
             $email = $request->input('email');
             $data  = $request->only(['board_name', 'board_description']);
 
-            $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
-                ->where('_id', $id)
-                ->where('deleted_at', null)
-                ->first();
+            $board  = Board::where('_id', $id)
+            ->where('deleted_at', null)
+            ->first();
 
-            if (empty($owner_board)) {
-                logger()->info($owner_board);
-                return response()->json(['message' => 'Board not found'], 422);
+            if (empty($board)) {
+                return response()->json(['message' => 'Board no found'], 422);
             }
 
-            $check_board = Board::where('board_name', $data['board_name'])
+            // Check if the provided email matches the board_owner_user_email
+            if ($email !== $board['board_owner_user']['board_owner_email']) {
+                return response()->json(['message' => 'Share user does not have permission to update board'], 422);
+            }
+
+            $check_board_name = Board::where('board_name', $data['board_name'])
                 ->where('space_id', $owner_board['space_id'])
                 ->where('_id', '!=', $owner_board['_id']) // Use '!=' to check not equal
                 ->where('deleted_at', null)
                 ->first(); 
 
-            if (!empty($check_board)) {
-                logger()->info($check_board);
-                return response()->json(['message' => 'Board name cannot be duplicate'], 422);
+            if (!empty($check_board_name)) {
+                return response()->json(['message' => 'Board name has been taken in this space'], 422);
             }
 
             //$language = Language::where('language_code', $data['board_default_language_code'])

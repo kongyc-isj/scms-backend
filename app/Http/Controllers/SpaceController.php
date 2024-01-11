@@ -56,22 +56,37 @@ class SpaceController extends Controller
             $owner_space  = Space::where('space_owner_user.space_owner_user_email', $email)
                 ->where('deleted_at', null)
                 ->get(['_id', 'space_name', 'space_description']);
+
+            $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
+                ->where('deleted_at', null)
+                ->get(['space_id']);
             
+            $space_ids_owner_board = [];
+            foreach ($owner_board as $item) {
+
+                $itemArray = json_decode(json_encode($item), true);
+                $space_ids_owner_board[] = $itemArray['space_id'];
+            }
+
+            //pass in the space_id list from share board to retrieve the space list
+            $space_from_owner_board = Space::whereIn('_id', $space_ids_owner_board)
+                ->where('deleted_at', null)
+                ->get(['_id', 'space_name', 'space_description']);
+
             //retrieve data if have been invited to other's board
             $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
                 ->where('deleted_at', null)
                 ->get(['space_id']);
 
             //prepare space_id list which is belong to the share board
-            $space_ids = [];
+            $space_ids_shared_board = [];
             foreach ($shared_board as $item) {
 
                 $itemArray = json_decode(json_encode($item), true);
-                $space_ids[] = $itemArray['space_id'];
+                $space_ids_shared_board[] = $itemArray['space_id'];
             }
-
             //pass in the space_id list from share board to retrieve the space list
-            $space_from_share_board = Space::whereIn('_id', $space_ids)
+            $space_from_share_board = Space::whereIn('_id', $space_ids_shared_board)
                 ->where('deleted_at', null)
                 ->get(['_id', 'space_name', 'space_description']);
 
@@ -81,6 +96,13 @@ class SpaceController extends Controller
 
             // Merge own created space list
             foreach ($owner_space as $item) {
+                $id = $item['_id'];
+                if (!isset($merged[$id])) {
+                    $merged[$id] = $item;
+                }
+            }
+
+            foreach ($space_from_owner_board as $item) {
                 $id = $item['_id'];
                 if (!isset($merged[$id])) {
                     $merged[$id] = $item;

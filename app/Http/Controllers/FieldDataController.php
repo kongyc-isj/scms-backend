@@ -296,6 +296,44 @@ class FieldDataController extends Controller
         catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
+    }    
+
+    public function field_data_language(Request $request)
+    {
+        try{
+            // Validate the request data
+            $request->validate([
+                'component_id'    => 'required|string',
+                'language_code'   => 'required|string'
+            ]);
+
+            $component = Component::where('_id', $request['component_id'])
+            ->where('deleted_at', null)
+            ->first();   
+
+            if (!$component) {
+                return response()->json(['message' => 'Component not found'], 422);
+            }
+
+            $field_data = FieldData::where('component_id', $component->id)
+            ->where('deleted_at', null)
+            ->first(); 
+
+            if (!$field_data) {
+                return response()->json(['message' => 'Component not found'], 422);
+            }
+
+            $language_list  = $field_data['field_key_value']; //->toArray();         
+            $language_array = (array_keys($language_list));   
+
+            $check_in_array = in_array($request['language_code'], $language_array);
+
+            return response()->json(['language_code_exist' => $check_in_array, 'message' => 'Field data language checked successfully'], 500);
+
+        }
+        catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
     }
 
     public function validate_field_key_id ($field_key_array, $field_key_value)
