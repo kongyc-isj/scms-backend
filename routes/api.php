@@ -9,6 +9,8 @@ use App\Http\Controllers\FieldKeyController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\FieldTypeController;
 use App\Http\Controllers\FieldDataController;
+use App\Http\Controllers\FetchController;
+use App\Http\Middleware\ApiKeyAuth;
 use App\Http\Middleware\ValidateAccessToken;
 
 /*
@@ -58,6 +60,10 @@ Route::middleware(['api', 'validateAccessToken'])->group(function () {
     Route::get('/field_data', [FieldDataController::class, 'show']);
     Route::post('/field_data', [FieldDataController::class, 'update']);
     Route::delete('/field_data', [FieldDataController::class, 'destroy']);
+});
+
+Route::middleware(['api','apiKeyAuth'])->group(function(){
+    Route::get('/fetch', [FetchController::class, 'get']);
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
