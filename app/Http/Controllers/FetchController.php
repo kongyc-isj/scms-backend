@@ -102,33 +102,43 @@ class FetchController extends Controller
             if ($request->has('filter')) {
 
                 $filters = $queryParams['filter'];                
-                //$filter_key = key($queryParams['filter']);
-                logger($filters);
 
                 $filtered_field_data_list = array_map(function ($field_data) use ($filters) {
                     $filtered_component = [];
                 
                     foreach ($field_data as $field_data_key => $field_data_value) {
                         $filtered_languages = [];
-                
+                    
                         foreach ($field_data_value as $language => $language_data) {
                             $filtered_keys = [];
-                
+                    
                             foreach ($filters as $key => $value) {
                                 if ($value === null) {
-                                    $filtered_keys[$key] = isset($language_data[$key]) ? $language_data[$key] : null;
+                                    //$filtered_keys[$key] = isset($language_data[$key]) ? $language_data[$key] : null;
+                    
+                                    if (isset($language_data[$key])){
+                                        $filtered_keys[$key] = $language_data[$key];
+                                    }
+                                    else{
+                                        unset($filtered_keys[$key]);
+                                    }
+                    
                                 } elseif (isset($language_data[$key]) && $language_data[$key] === $value) {
                                     $filtered_keys[$key] = $value;
                                 }
                             }
                             $filtered_languages[$language] = $filtered_keys;
                         }
-                        $filtered_component[$field_data_key] = $filtered_languages;
+                        // Include the component only if it has languages
+                        if (!empty($filtered_languages)) {
+                            $filtered_component[$field_data_key] = $filtered_languages;
+                        }
                     }
+                
                     return $filtered_component;
-                }, $field_data_language);
+                }, $field_data_language);        
+
                 $field_data_language = $filtered_field_data_list;
-                //return $filtered_field_data_list;
             }
         }
 
