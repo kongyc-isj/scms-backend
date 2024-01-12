@@ -10,6 +10,7 @@ use App\Models\FieldKey;
 use App\Models\Board;
 use App\Models\Component;
 use App\Models\Language;
+use DateTime;
 
 class FieldDataController extends Controller
 {
@@ -379,40 +380,135 @@ class FieldDataController extends Controller
                 $field_type_name = $field_key_collection['field_type_name'];
 
                 switch ($field_type_name) {
+
                     case 'short_text':
+                        $max_length = 255; 
+                        if (!is_string($field_value) || strlen($field_value) > $max_length) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Maximum length $max_length exceeded."], 422);
+                        }
+                        break;      
+
                     case 'long_text':
+                        $max_length = 65536;  
+                        if (!is_string($field_value) || strlen($field_value) > $max_length) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Maximum length $max_length exceeded."], 422);
+                        }
+                        break;
+
                     case 'rich_text':
+                        if (!is_string($field_value) || empty(trim($field_value))) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Rich text content cannot be empty."], 422);
+                        }
+                        
+                        // Example: Check if the content contains any HTML tags (may vary based on your requirements)
+                        if (strip_tags($field_value) === $field_value) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Rich text content must include HTML formatting."], 422);
+                        }
+                        break;   
+
                     case 'email':
-                        if (!is_string($field_value)) {
-                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
+                        if (!filter_var($field_value, FILTER_VALIDATE_EMAIL)) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid email address."], 422);
                         }
                         break;
+
                     case 'integer':
-                    case 'big_integer':
+                        $min_value = -2147483647;
+                        $max_value = 2147483647;
+                    
+                        if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value || !filter_var($field_value, FILTER_VALIDATE_INT)) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid integer within the range of -2,147,483,647 to 2,147,483,647."], 422);
+                        }
+                        break;
+
                     case 'decimal':
+                        $min_value = pow(10, -129);
+                        $max_value = pow(10, 125);
+                     
+                        if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid decimal within the range of 10^(-129) to 10^(125)."], 422);
+                        }
+                        break;
+
+                    case 'big_integer':
+                        $max_value = pow(2, 63) - 1;
+                        $min_value = -$max_value - 1;
+                    
+                        if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value || !filter_var($field_value, FILTER_VALIDATE_INT)) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid 63-bit big integer."], 422);
+                        }
+                        break;
+
                     case 'float':
-                        if (!is_numeric($field_value)) {
-                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
+                        $min_value = 3.4E-38;
+                        $max_value = 3.4E+38;
+                    
+                        if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid float within the range of approximately 3.4E-38 to 3.4E+38."], 422);
                         }
                         break;
-                    case 'date':
+
                     case 'datetime':
+                        $format = 'Y-m-d H:i:s';
+                    
+                        $datetime = DateTime::createFromFormat($format, $field_value);
+                    
+                        if (!$datetime || $datetime->format($format) !== $field_value) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid datetime in the format 'Y-m-d H:i:s'."], 422);
+                        }
+                        break;                
+
+                    case 'date':
+                        $format = 'Y-m-d';                     
+
+                        $date = DateTime::createFromFormat($format, $field_value);                     
+
+                        if (!$date || $date->format($format) !== $field_value) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid date in the format 'YYYY-MM-DD'."], 422);
+                        }
+                        break;     
+
                     case 'time':
-                        if (!strtotime($field_value)) {
+                        $format = 'h:i:s A';
+                    
+                        $time = DateTime::createFromFormat($format, $field_value);
+                    
+                        if (!$time || $time->format($format) !== $field_value) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid time in the format 'HH:MM:SS XM'."], 422);
+                        }
+                        break;
+
+                    case 'media':
+                        // Example: Check if it's a valid file (you might need more specific checks)
+                        if (!is_uploaded_file($field_value)) {
                             return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
-                    case 'media':
-                        // You may add specific validation logic for media type
-                        break;
+
                     case 'boolean':
                         if (!is_bool($field_value)) {
                             return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
                         }
                         break;
+
                     case 'json':
-                        // You may add specific validation logic for JSON type
+                        // Assuming $field_value is the JSON value
+                     
+                        // If $field_value is an array, encode it to JSON
+                        if (is_array($field_value)) {
+                            $field_value = json_encode($field_value);
+                        }
+     
+                        $decoded_json = json_decode($field_value);
+                     
+                        if ($decoded_json === null && json_last_error() !== JSON_ERROR_NONE) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid JSON string or array."], 422);
+                        }
+                        if (!is_string($field_value) || is_numeric($field_value)) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid JSON string or array."], 422);
+                        }
                         break;
+
                     default:
                         return response()->json(['message' => "Unsupported field_type_name: $field_type_name for field key name: $field_key_name"], 422);
                 }
