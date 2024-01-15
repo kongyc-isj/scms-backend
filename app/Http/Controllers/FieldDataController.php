@@ -81,7 +81,7 @@ class FieldDataController extends Controller
                         }
                     }
                 }
-                return response()->json(['field_data' => $mapped_data, 'message' => 'Field data show successfully'], 200);
+                return response()->json(['board_default_language'=>$board->board_default_language_code, 'field_data' => $mapped_data, 'message' => 'Field data show successfully'], 200);
             }
             elseif($method == "update")
             {
