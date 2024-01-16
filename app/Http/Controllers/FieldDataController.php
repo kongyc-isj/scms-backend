@@ -329,7 +329,7 @@ class FieldDataController extends Controller
 
             $check_in_array = in_array($request['language_code'], $language_array);
 
-            return response()->json(['language_code_exist' => $check_in_array, 'message' => 'Field data language checked successfully'], 500);
+            return response()->json(['language_code_exist' => $check_in_array, 'message' => 'Field data language checked successfully'], 200);
 
         }
         catch (\Exception $e) {

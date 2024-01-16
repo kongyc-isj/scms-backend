@@ -58,8 +58,23 @@ class BoardController extends Controller
             {
                 return response()->json(['board' => [], 'message' => 'Board show successfully'], 200);      
             }
+            $jsonData = json_encode($merged_result); 
+            $boards   = json_decode($jsonData, true);
 
-            return response()->json(['board' => $merged_result, 'message' => 'Board show successfully'], 200);
+            if(!empty($boards)){
+                foreach ($boards as &$board) {
+                    foreach ($board['board_shared_user'] as &$user) {
+                        $userCopy = $user; // Make a copy of the nested array
+                        $userCopy['board_shared_user_create_access'] = (bool) $user['board_shared_user_create_access'];
+                        $userCopy['board_shared_user_read_access']   = (bool) $user['board_shared_user_read_access'];
+                        $userCopy['board_shared_user_update_access'] = (bool) $user['board_shared_user_update_access'];
+                        $userCopy['board_shared_user_delete_access'] = (bool) $user['board_shared_user_delete_access'];
+                        $user = $userCopy; // Assign the copy back to the original array
+                    }
+                }
+            }
+
+            return response()->json(['board' => $boards, 'message' => 'Board show successfully'], 200);
         }
         catch (\Exception $e) {
             logger()->error($e);
@@ -94,11 +109,37 @@ class BoardController extends Controller
 
             if (isset($owner_board))
             {
-                return response()->json(['board' => $owner_board, 'message' => 'Board show successfully'], 200);
+                $jsonData = json_encode($owner_board); 
+                $owner_board_access   = json_decode($jsonData, true);
+
+                if(!empty ($owner_board_access['board_shared_user']))
+                {
+                    foreach ($owner_board_access['board_shared_user'] as &$user) {
+                        $user['board_shared_user_create_access'] = (bool) $user['board_shared_user_create_access'];
+                        $user['board_shared_user_read_access']   = (bool) $user['board_shared_user_read_access'];
+                        $user['board_shared_user_update_access'] = (bool) $user['board_shared_user_update_access'];
+                        $user['board_shared_user_delete_access'] = (bool) $user['board_shared_user_delete_access'];
+                    }
+                }
+
+                return response()->json(['board' => $owner_board_access, 'message' => 'Board show successfully'], 200);
             }
             elseif (isset($shared_board))
             {
-                return response()->json(['board' => $shared_board, 'message' => 'Board show successfully'], 200);
+                $jsonData = json_encode($shared_board); 
+                $shared_board_access   = json_decode($jsonData, true);
+
+                if(!empty ($shared_board_access['board_shared_user']))
+                {
+                    foreach ($shared_board_access['board_shared_user'] as &$user) {
+                        $user['board_shared_user_create_access'] = (bool) $user['board_shared_user_create_access'];
+                        $user['board_shared_user_read_access']   = (bool) $user['board_shared_user_read_access'];
+                        $user['board_shared_user_update_access'] = (bool) $user['board_shared_user_update_access'];
+                        $user['board_shared_user_delete_access'] = (bool) $user['board_shared_user_delete_access'];
+                    }
+                }
+
+                return response()->json(['board' => $shared_board_access, 'message' => 'Board show successfully'], 200);
             }
             else
             {
@@ -123,7 +164,7 @@ class BoardController extends Controller
                 'board_shared_user' => 'nullable|array',
                 'board_shared_user.*.board_shared_user_email' => 'nullable|email',
                 'board_shared_user.*.board_shared_user_create_access' => 'nullable|integer',
-                'board_shared_user.*.board_shared_user_read_access' => 'nullable|integer',
+                'board_shared_user.*.board_shared_user_read_access'   => 'nullable|integer',
                 'board_shared_user.*.board_shared_user_update_access' => 'nullable|integer',
                 'board_shared_user.*.board_shared_user_delete_access' => 'nullable|integer'
             ]);
@@ -216,32 +257,36 @@ class BoardController extends Controller
             if (!empty($check_board_name)) {
                 return response()->json(['message' => 'Board name has been taken in this space'], 422);
             }
-
-            //$language = Language::where('language_code', $data['board_default_language_code'])
-            //    ->where('deleted_at', null)
-            //    ->first();  
-
-            //if (!$language) {
-            //    return response()->json(['message' => 'Language not found'], 422);
-            //}
-
+            
             $share_user_array  = $request->input('board_shared_user');
             $board_share_users = $board['board_shared_user'];
 
-            //Update each shared user
-            foreach ($share_user_array as $share_user) {
-                // Find the index of the matching shared user based on email
-                $index = array_search($share_user['board_shared_user_email'], array_column($board['board_shared_user'], 'board_shared_user_email'));
-
-                if ($index !== false) {
-                    // Update existing user data
-                    $board_share_users[$index] = $share_user;
+            // Convert db_share_user to associative array for easier lookup
+            $board_share_users_assoc = array_column($board_share_users, null, 'board_shared_user_email');
+                        
+            // Iterate over request_share_user
+            foreach ($share_user_array as &$share_user) {
+                $email = $share_user['board_shared_user_email'];
+            
+                // Check if the email exists in db_share_user
+                if (isset($board_share_users_assoc[$email])) {
+                    // Email exists, update the data
+                    $board_share_users_assoc[$email] = $share_user;
                 } else {
-                    $board_share_users[] = $share_user;
+                    // Email doesn't exist, add to db_share_user
+                    $board_share_users_assoc[$email] = $share_user;
                 }
             }
+            
+            // Remove entries from db_share_user that are not in request_share_user
+            $board_share_users_assoc = array_filter($board_share_users_assoc, function ($user) use ($share_user_array) {
+                return in_array($user, $share_user_array);
+            });
 
-            $data['board_shared_user'] = $board_share_users;
+            $board_share_users_updated = array_values($board_share_users_assoc);
+            logger($board_share_users_updated);
+
+            $data['board_shared_user'] = $board_share_users_updated;
             $board->update($data);
 
             return response()->json(['message' => 'Board updated successfully'], 200);
