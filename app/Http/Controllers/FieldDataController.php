@@ -37,7 +37,7 @@ class FieldDataController extends Controller
         ->first(); 
 
         if (!$field_data) {
-            return response()->json(['message' => 'Field Data not found'], 422);
+            return response()->json(['field_data' => [], 'message' => 'Field Data not found'], 200);
         }
 
         $field_key = FieldKey::where('component_id', $component->_id)
@@ -379,6 +379,11 @@ class FieldDataController extends Controller
                 // Validate the value based on field_type_name
                 $field_type_name = $field_key_collection['field_type_name'];
 
+                if($field_value == null)
+                {
+                    continue;
+                }
+
                 switch ($field_type_name) {
 
                     case 'short_text':
@@ -424,8 +429,9 @@ class FieldDataController extends Controller
                     case 'decimal':
                         $min_value = pow(10, -129);
                         $max_value = pow(10, 125);
-                     
-                        if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value) {
+                        $pattern = '/^-?\d+(\.\d{1,2})?$/';
+
+                        if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value || !preg_match($pattern, $field_value)) {
                             return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid decimal within the range of 10^(-129) to 10^(125)."], 422);
                         }
                         break;

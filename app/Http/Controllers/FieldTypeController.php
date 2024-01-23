@@ -36,7 +36,7 @@ class FieldTypeController extends Controller
             
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => 'Internal Server Error'], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }
     }
 }

@@ -77,7 +77,7 @@ class FetchController extends Controller
         }
 
         if (empty($field_data_list)){
-            return response()->json(['data' => [], 'message' => 'No field data not found'], 422);
+            return response()->json(['data' => [], 'message' => 'Field data not found'], 200);
         }
 
         $field_data_language = [];

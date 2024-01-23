@@ -41,7 +41,7 @@ class FieldKeyController extends Controller
             {
                 $field_key = FieldKey::create($data); 
 
-                $this->insert_field_key_to_field_data($field_key, $board);
+                $this->insert_field_key_to_field_data($field_key, $board, $data);
 
                 return response()->json(['message' => 'Field Key created successfully'], 200);
             }
@@ -79,7 +79,7 @@ class FieldKeyController extends Controller
 
                 $field_key->update($data);
 
-                $this->delete_field_key_from_field_data($field_key, $board);
+                $this->delete_field_key_from_field_data($field_key);
 
                 return response()->json(['field_key' => $field_key, 'message' => 'Field Key deleted successfully'], 200);
             }            
@@ -101,7 +101,7 @@ class FieldKeyController extends Controller
                 if ($sharedUser['board_shared_user_create_access'] == 1) 
                 {
                     $field_key = FieldKey::create($data); 
-                    $this->insert_field_key_to_field_data($field_key, $board);
+                    $this->insert_field_key_to_field_data($field_key, $board, $data);
 
                     return response()->json(['message' => 'Field Key created successfully'], 200);
                 } 
@@ -201,7 +201,7 @@ class FieldKeyController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => 'Internal Server Error'], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }    
     }
 
@@ -222,7 +222,7 @@ class FieldKeyController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => 'Internal Server Error'], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }   
     }
 
@@ -233,8 +233,8 @@ class FieldKeyController extends Controller
             $request->validate([
                 'component_id'          => 'required|string',
                 'field_type_name'       => 'required|string', 
-                'field_key_name'        => 'required|string',
-                'field_key_description' => 'required|string',
+                'field_key_name'        => ['required', 'string', 'regex:/^\S*$/'],
+                'field_key_description' => 'nullable|string',
             ]);
             $data = $request->all();
 
@@ -280,7 +280,7 @@ class FieldKeyController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => 'Internal Server Error'], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         }   
     }
 
@@ -289,7 +289,7 @@ class FieldKeyController extends Controller
         try {
             $request->validate([
                 'field_key_name'        => 'required|string',
-                'field_key_description' => 'required|string'
+                'field_key_description' => 'nullable|string'
             ]);
 
             $data               = $request->only(['field_key_name', 'field_key_description']);
@@ -323,7 +323,7 @@ class FieldKeyController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => "$e"], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         } 
     }
 
@@ -345,11 +345,11 @@ class FieldKeyController extends Controller
 
         } catch (\Exception $e) {
             logger()->error($e);
-            return response()->json(['message' => "$e"], 500);
+            return response()->json(['message' => $e->getMessage()], 500);
         } 
     }
 
-    public function insert_field_key_to_field_data($field_key, $board)
+    public function insert_field_key_to_field_data($field_key, $board, $data)
     {
         $field_data = FieldData::where('component_id', $field_key->component_id)
         ->where('deleted_at', null)
@@ -358,6 +358,13 @@ class FieldKeyController extends Controller
         $field_key_format = [
             $field_key->field_key_name => ""
         ];
+
+        if($data['field_type_name'] == 'boolean')
+        {
+            $field_key_format = [
+                $field_key->field_key_name => true
+            ];
+        }
 
         if (empty($field_data)) {
 
@@ -401,7 +408,7 @@ class FieldKeyController extends Controller
         }
     }
 
-    public function delete_field_key_from_field_data($field_key, $board)
+    public function delete_field_key_from_field_data($field_key)
     {
         $field_data = FieldData::where('component_id', $field_key->component_id)
         ->where('deleted_at', null)
@@ -413,10 +420,10 @@ class FieldKeyController extends Controller
 
         foreach ($field_key_value_list as $language_code => $language_field_data) {
             // Check if the field_key_id exists in the current language subarray
-            if (isset($language_field_data[$field_key->_id])) {
+            if (isset($language_field_data[$field_key->field_key_name])) {
 
                 // Remove the specific key from the language subarray
-                unset($field_key_value_list[$language_code][$field_key->_id]);
+                unset($field_key_value_list[$language_code][$field_key->field_key_name]);
 
                 $field_key_value_formats[] = [
                     $language_code => $field_key_value_list[$language_code]
