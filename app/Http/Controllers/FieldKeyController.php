@@ -31,9 +31,16 @@ class FieldKeyController extends Controller
             return response()->json(['message' => 'Board not found'], 404);
         }
 
-        $owner_board  = Board::where('board_owner_user.board_owner_email', $email)->first();
-        $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])->first();
+        $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
+                        ->where('_id', $board_id)    
+                        ->where('deleted_at', null)
+                        ->first();
 
+
+        $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
+                        ->where('_id', $board_id)   
+                        ->where('deleted_at', null) 
+                        ->first();
 
         if ($owner_board) 
         {
@@ -159,7 +166,7 @@ class FieldKeyController extends Controller
             }
             elseif($method == "destroy")
             {
-                if ($sharedUser['board_shared_user_destroy_access'] == 1) {
+                if ($sharedUser['board_shared_user_delete_access'] == 1) {
 
                     $field_key = FieldKey::where('_id', $field_key_id)
                         ->where('deleted_at', null)

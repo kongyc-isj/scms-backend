@@ -19,9 +19,16 @@ class ComponentController extends Controller
             return response()->json(['message' => 'Board not found'], 422);
         }
 
-        $owner_board  = Board::where('board_owner_user.board_owner_email', $email)->first();
-        $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])->first();
+        $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
+                        ->where('_id', $board_id)    
+                        ->where('deleted_at', null)
+                        ->first();
 
+
+        $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
+                        ->where('_id', $board_id)   
+                        ->where('deleted_at', null) 
+                        ->first();
 
         if ($owner_board) 
         {
@@ -140,7 +147,7 @@ class ComponentController extends Controller
             }
             elseif($method == "destroy")
             {
-                if ($sharedUser['board_shared_user_destroy_access'] == 1) {
+                if ($sharedUser['board_shared_user_delete_access'] == 1) {
 
                     $component = Component::where('_id', $component_id)
                         ->where('deleted_at', null)

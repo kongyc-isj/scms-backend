@@ -9,6 +9,8 @@ class MediaGallery extends Model
 {
     use HasFactory;
 
+    protected $collection = 'media_gallery';
+
     protected $fillable = [
         'media_name',
         'media_description',

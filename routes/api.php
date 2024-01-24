@@ -10,6 +10,7 @@ use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\FieldTypeController;
 use App\Http\Controllers\FieldDataController;
 use App\Http\Controllers\FetchController;
+use App\Http\Controllers\MediaController;
 use App\Http\Middleware\ApiKeyAuth;
 use App\Http\Middleware\ValidateAccessToken;
 
@@ -61,6 +62,11 @@ Route::middleware(['api', 'validateAccessToken'])->group(function () {
     Route::post('/field_data', [FieldDataController::class, 'update']);
     Route::delete('/field_data', [FieldDataController::class, 'destroy']);
     Route::get('/field_data/field_data_language', [FieldDataController::class, 'field_data_language']);
+
+    //Media CRUD
+    Route::apiResource('media', MediaController::class);
+    Route::post('/media/update_media/{id}', [MediaController::class, 'update_media']);
+
 });
 
 Route::middleware(['api','apiKeyAuth'])->group(function(){

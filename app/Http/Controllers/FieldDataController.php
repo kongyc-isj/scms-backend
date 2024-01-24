@@ -48,8 +48,17 @@ class FieldDataController extends Controller
             return response()->json(['message' => 'Field Key not found'], 422);
         }
 
-        $owner_board           = Board::where('board_owner_user.board_owner_email', $email)->first();
-        $shared_board          = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])->first();
+        $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
+                        ->where('_id', $board_id)    
+                        ->where('deleted_at', null)
+                        ->first();
+
+
+        $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
+                        ->where('_id', $board_id)   
+                        ->where('deleted_at', null) 
+                        ->first();
+                        
         $field_data_list       = $field_data->toArray();
         $field_key_value_list  = $field_data_list['field_key_value'];
         $language_code         = empty($request['language_code']) ? $board->board_default_language_code : $request['language_code'];
