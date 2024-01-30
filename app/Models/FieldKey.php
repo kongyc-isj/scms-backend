@@ -19,4 +19,10 @@ class FieldKey extends Model
         'updated_at',
         'deleted_at'
     ];
+
+    public function component()
+    {
+        return $this->belongsTo(Component::class, 'component_id');
+    }
+    
 }

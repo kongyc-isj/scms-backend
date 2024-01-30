@@ -10,6 +10,7 @@ use App\Models\FieldKey;
 use App\Models\Board;
 use App\Models\Component;
 use App\Models\Language;
+use App\Models\MediaGallery;
 use DateTime;
 
 class FieldDataController extends Controller
@@ -49,13 +50,13 @@ class FieldDataController extends Controller
         }
 
         $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
-                        ->where('_id', $board_id)    
+                        ->where('_id', $board->_id)    
                         ->where('deleted_at', null)
                         ->first();
 
 
         $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
-                        ->where('_id', $board_id)   
+                        ->where('_id', $board->_id)   
                         ->where('deleted_at', null) 
                         ->first();
                         
@@ -79,6 +80,26 @@ class FieldDataController extends Controller
                 foreach ($data as $field_key_name => $field_value) {
                     foreach ($field_key as $each_field_key) {
                         if ($each_field_key['field_key_name'] === $field_key_name) {
+
+                            if($each_field_key['field_type_name'] == 'media' && !empty($field_value)){
+
+                                $media_list = [];
+
+                                foreach ($field_value as $each_field_value){
+
+                                    $media = MediaGallery::where('_id', $each_field_value)
+                                    ->where('deleted_at', null)
+                                    ->first(['media_name', 'media_url']);
+
+                                    if (!$media)
+                                        continue;
+                                     
+                                    $media_list[] = $media;
+                                } 
+                                $field_value = $media_list;
+                                //logger($field_value);
+                            }
+
                             $each_map_data = [
                                 "field_key_id" => $each_field_key['_id'],
                                 "value" => $field_value,
@@ -100,7 +121,7 @@ class FieldDataController extends Controller
                     return $validate_field_key;
     
                 //validate field type
-                $validate_field_type = $this->validate_field_type($field_key->toArray(), $request['field_key_value']);
+                $validate_field_type = $this->validate_field_type($field_key->toArray(), $request['field_key_value'], $owner_board->_id);
     
                 if(!empty($validate_field_type))
                     return $validate_field_type;
@@ -170,6 +191,26 @@ class FieldDataController extends Controller
                     foreach ($data as $field_key_name => $field_value) {
                         foreach ($field_key as $each_field_key) {
                             if ($each_field_key['field_key_name'] === $field_key_name) {
+
+                                if($each_field_key['field_type_name'] == 'media' && !empty($field_value)){
+
+                                    $media_list = [];
+    
+                                    foreach ($field_value as $each_field_value){
+    
+                                        $media = MediaGallery::where('_id', $each_field_value)
+                                        ->where('deleted_at', null)
+                                        ->first(['media_name', 'media_url']);
+    
+                                        if (!$media){
+                                            continue;
+                                        }
+                                        
+                                        $media_list[] = $media;
+                                    } 
+                                    $field_value = $media_list;    
+                                }
+
                                 $each_map_data = [
                                     "field_key_id" => $each_field_key['_id'],
                                     "value" => $field_value,
@@ -198,7 +239,7 @@ class FieldDataController extends Controller
                         return $validate_field_key;
         
                     //validate field type
-                    $validate_field_type = $this->validate_field_type($field_key->toArray(), $request['field_key_value']);
+                    $validate_field_type = $this->validate_field_type($field_key->toArray(), $request['field_key_value'], $shared_board->_id);
         
                     if(!empty($validate_field_type))
                         return $validate_field_type;
@@ -374,7 +415,7 @@ class FieldDataController extends Controller
 
     }
 
-    public function validate_field_type ($field_key_array, $field_key_value)
+    public function validate_field_type ($field_key_array, $field_key_value, $board_id)
     {
         try{
             foreach ($field_key_value as $field_key_name => $field_value) {
@@ -494,10 +535,22 @@ class FieldDataController extends Controller
                         break;
 
                     case 'media':
-                        // Example: Check if it's a valid file (you might need more specific checks)
-                        if (!is_uploaded_file($field_value)) {
-                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name"], 422);
+
+                        foreach ($field_value as $each_field_value){
+                            logger($each_field_value);
+                            $media = MediaGallery::where('_id', $each_field_value)
+                            ->where('deleted_at', null)
+                            ->first();
+                    
+                            if (!$media) {
+                                return response()->json(['message' => 'Media not found'], 422);
+                            }
+    
+                            if ($media->board_id != $board_id) {
+                                return response()->json(['message' => 'Media is not available in this board'], 422);
+                            }
                         }
+
                         break;
 
                     case 'boolean':

@@ -32,13 +32,13 @@ class FieldKeyController extends Controller
         }
 
         $owner_board  = Board::where('board_owner_user.board_owner_email', $email)
-                        ->where('_id', $board_id)    
+                        ->where('_id', $board->_id)    
                         ->where('deleted_at', null)
                         ->first();
 
 
         $shared_board = Board::where('board_shared_user', 'elemMatch', ['board_shared_user_email' => $email])
-                        ->where('_id', $board_id)   
+                        ->where('_id', $board->_id)   
                         ->where('deleted_at', null) 
                         ->first();
 
@@ -366,10 +366,19 @@ class FieldKeyController extends Controller
             $field_key->field_key_name => ""
         ];
 
+        //default boolean value is true
         if($data['field_type_name'] == 'boolean')
         {
             $field_key_format = [
                 $field_key->field_key_name => true
+            ];
+        }
+
+        //default media value is []
+        if($data['field_type_name'] == 'media')
+        {
+            $field_key_format = [
+                $field_key->field_key_name => []
             ];
         }
 

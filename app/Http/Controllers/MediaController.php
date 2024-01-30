@@ -35,10 +35,10 @@ class MediaController extends Controller
         {
             if($method == "store")
             {
-                $media_data = MediaGallery::create(['media_name' => $data['media_name'], 'board_id' =>  $board_id ]);
+                $media_data = MediaGallery::create(['media_name' => $data['media_name'], 'board_id' =>  $board_id, 'deleted_at' => null ]);
 
                 // File was successfully stored
-                $media_url = 'staging/dist/img/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
+                $media_url = 'staging/media/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
     
                 //upload image to s3-
                 $result = Storage::disk('s3')->put($media_url, file_get_contents($data['file']), 'public');
@@ -87,7 +87,7 @@ class MediaController extends Controller
                     return response()->json(['message' => 'Media not found'], 422);
                 }
 
-                $media_url = 'staging/dist/img/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
+                $media_url = 'staging/media/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
 
                 $result    = Storage::disk('s3')->put($media_url, file_get_contents($data['file']), 'public');
 
@@ -148,7 +148,7 @@ class MediaController extends Controller
         
             // Find the specific shared user that matches the provided email
             $sharedUser = $sharedUserCollection->firstWhere('board_shared_user_email', $email);
-            logger($sharedUser);
+
             if($method == "store")
             {
                 if ($sharedUser['board_shared_user_create_access'] == 1) 
@@ -156,7 +156,7 @@ class MediaController extends Controller
                     $media_data = MediaGallery::create(['media_name' => $data['media_name'], 'board_id' =>  $board_id ]);
 
                     // File was successfully stored
-                    $media_url = 'staging/dist/img/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
+                    $media_url = 'staging/media/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
         
                     //upload image to s3-
                     $result = Storage::disk('s3')->put($media_url, file_get_contents($data['file']), 'public');
@@ -221,7 +221,7 @@ class MediaController extends Controller
                         return response()->json(['message' => 'Media not found'], 422);
                     }
 
-                    $media_url = 'staging/dist/img/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
+                    $media_url = 'staging/media/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
 
                     $result    = Storage::disk('s3')->put($media_url, file_get_contents($data['file']), 'public');
 
@@ -298,7 +298,7 @@ class MediaController extends Controller
             $request->validate([
                 'board_id'   => 'required|string',
                 'media_name' => 'required|string',
-                'file'       => 'required|file|mimes:jpeg,png,gif,mp4,mov,avi,wmv'
+                'file'       => 'required|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi,wmv|max:20000', // Example validation rule
             ]);
             $email      = $request->input('email');
             $file       = $request->file('file');
