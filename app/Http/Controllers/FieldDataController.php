@@ -12,6 +12,7 @@ use App\Models\Component;
 use App\Models\Language;
 use App\Models\MediaGallery;
 use DateTime;
+use Stichoza\GoogleTranslate\GoogleTranslate;
 
 class FieldDataController extends Controller
 {
@@ -69,11 +70,19 @@ class FieldDataController extends Controller
             if($method == "show")
             {
                 //if valid language given but it is no recorded then return error
-                if (!array_key_exists($language_code, $field_key_value_list)) {
-                    return response()->json(['field_data' => [], 'message' => "Language code '$language_code' not found in field data."], 200);
-                }
 
-                $data = $field_key_value_list[$language_code];
+                //language no exist and need to auto translate
+                if (!array_key_exists($language_code, $field_key_value_list)) {
+                    $data = $field_key_value_list[$board->board_default_language_code];
+                }
+                //language existed but need to translate
+                elseif (array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 1){
+                    $data = $field_key_value_list[$board->board_default_language_code];
+                }
+                //language existed and no need to translate
+                else{
+                    $data = $field_key_value_list[$language_code];
+                }
 
                 //prepare api return format
                 $mapped_data = [];
@@ -97,7 +106,27 @@ class FieldDataController extends Controller
                                     $media_list[] = $media;
                                 } 
                                 $field_value = $media_list;
-                                //logger($field_value);
+                            }
+
+                            if($each_field_key['field_type_name'] == 'long_text' || $each_field_key['field_type_name'] == 'short_text' && !empty($field_value) && $owner_board->board_default_language_code != $language_code){
+                            
+                                //do for auto translate for not existed language
+                                if(!array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 0)
+                                {
+                                    $tr = new GoogleTranslate(); 
+                                    $tr->setSource($owner_board->board_default_language_code); 
+                                    $tr->setTarget($language_code); 
+                                    $field_value = $tr->translate($field_value);  
+                                }
+
+                                //do for manual translate button for existed language
+                                if(array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 1)
+                                {
+                                    $tr = new GoogleTranslate(); 
+                                    $tr->setSource($owner_board->board_default_language_code); 
+                                    $tr->setTarget($language_code); 
+                                    $field_value = $tr->translate($field_value);
+                                }
                             }
 
                             $each_map_data = [
@@ -180,12 +209,20 @@ class FieldDataController extends Controller
             {
                 if ($sharedUser['board_shared_user_read_access'] == 1) {
                     //if valid language given but it is no recorded then return error
+
+                    //language no exist and need to auto translate
                     if (!array_key_exists($language_code, $field_key_value_list)) {
-                    return response()->json(['field_data' => [], 'message' => "Language code '$language_code' not found in field data."], 200);
+                        $data = $field_key_value_list[$board->board_default_language_code];
                     }
-                
-                    $data = $field_key_value_list[$language_code];
-                
+                    //language existed but need to translate
+                    elseif (array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 1){
+                        $data = $field_key_value_list[$board->board_default_language_code];
+                    }
+                    //language existed and no need to translate
+                    else{
+                        $data = $field_key_value_list[$language_code];
+                    }
+                                
                     //prepare api return format
                     $mapped_data = [];
                     foreach ($data as $field_key_name => $field_value) {
@@ -209,6 +246,27 @@ class FieldDataController extends Controller
                                         $media_list[] = $media;
                                     } 
                                     $field_value = $media_list;    
+                                }
+
+                                if($each_field_key['field_type_name'] == 'long_text' || $each_field_key['field_type_name'] == 'short_text' && !empty($field_value) && $owner_board->board_default_language_code != $language_code){
+                            
+                                    //do for auto translate for not existed language
+                                    if(!array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 0)
+                                    {
+                                        $tr = new GoogleTranslate(); 
+                                        $tr->setSource($owner_board->board_default_language_code); 
+                                        $tr->setTarget($language_code); 
+                                        $field_value = $tr->translate($field_value);  
+                                    }
+    
+                                    //do for manual translate button for existed language
+                                    if(array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 1)
+                                    {
+                                        $tr = new GoogleTranslate(); 
+                                        $tr->setSource($owner_board->board_default_language_code); 
+                                        $tr->setTarget($language_code); 
+                                        $field_value = $tr->translate($field_value);
+                                    }
                                 }
 
                                 $each_map_data = [
@@ -300,8 +358,9 @@ class FieldDataController extends Controller
     public function show(Request $request)
     {
         $request->validate([
-            'component_id'  => 'required|string',
-            'language_code' => 'nullable|string'
+            'component_id'           => 'required|string',
+            'language_code'          => 'nullable|string',
+            'translate_existed_data' => 'optional|string'
         ]);
 
         return $this->field_data_permission($request['component_id'], $request['email'], $request, 'show');
@@ -487,8 +546,8 @@ class FieldDataController extends Controller
                         break;
 
                     case 'big_integer':
-                        $max_value = pow(2, 63) - 1;
-                        $min_value = -$max_value - 1;
+                        $max_value = 9223372036854775807;
+                        $min_value = -9223372036854775808;
                     
                         if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value || !filter_var($field_value, FILTER_VALIDATE_INT)) {
                             return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid 63-bit big integer."], 422);

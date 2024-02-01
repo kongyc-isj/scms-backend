@@ -378,7 +378,14 @@ class FieldKeyController extends Controller
         if($data['field_type_name'] == 'media')
         {
             $field_key_format = [
-                $field_key->field_key_name => []
+                $field_key->field_key_name => [] 
+            ];
+        }
+
+        if($data['field_type_name'] == 'json')
+        {
+            $field_key_format = [
+                $field_key->field_key_name => (object) ["key" => "value"]
             ];
         }
 
@@ -436,13 +443,14 @@ class FieldKeyController extends Controller
 
         foreach ($field_key_value_list as $language_code => $language_field_data) {
             // Check if the field_key_id exists in the current language subarray
-            if (isset($language_field_data[$field_key->field_key_name])) {
+            if (isset($language_field_data[$field_key->field_key_name]) || $language_field_data[$field_key->field_key_name] == null) {        
+                $ref_field_key_value_list = $field_key_value_list;
 
                 // Remove the specific key from the language subarray
-                unset($field_key_value_list[$language_code][$field_key->field_key_name]);
+                unset($ref_field_key_value_list[$language_code][$field_key->field_key_name]);
 
                 $field_key_value_formats[] = [
-                    $language_code => $field_key_value_list[$language_code]
+                    $language_code => $ref_field_key_value_list[$language_code]
                 ];
             }
         }

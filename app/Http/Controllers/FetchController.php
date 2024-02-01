@@ -6,8 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Board;
 use App\Models\Component;
 use App\Models\FieldData;
+use App\Models\FieldKey;
 use App\Models\Language;
-
+use App\Models\MediaGallery;
 class FetchController extends Controller
 {
     //
@@ -18,7 +19,7 @@ class FetchController extends Controller
         logger()->info($request->board->_id);
 
         $component_name = $request->input('component_name');
-        $language_code  = $request->input('language_code');
+        $check_language_code  = $request->input('language_code');
 
         $field_data_list = [];
 
@@ -37,7 +38,7 @@ class FetchController extends Controller
 
                 $field_data = FieldData::where('component_id', $component_id_value['_id'])
                 ->where('deleted_at', null)
-                ->first(['field_key_value']); 
+                ->first(); 
 
                 if(empty($field_data))
                     continue;
@@ -63,7 +64,7 @@ class FetchController extends Controller
             
             $field_data = FieldData::where('component_id', $component['_id'])
             ->where('deleted_at', null)
-            ->first(['field_key_value']); 
+            ->first(); 
 
             if (!$field_data) {
                 return response()->json(['message' => 'Field not found'], 422);
@@ -87,13 +88,55 @@ class FetchController extends Controller
             $output_each_field_data = [];
         
             foreach ($each_field_data as $each_field_data_name => $each_field_data_value) {
-                if (empty($language_code)) {
-                    $output_each_field_data[$each_field_data_name] = $each_field_data_value;
-                } else {
-                    $output_each_field_data[$each_field_data_name] = [
-                        $language_code => isset($each_field_data_value[$language_code]) ? $each_field_data_value[$language_code] : []
-                    ];
+
+                $component = Component::where('component_name', $each_field_data_name)
+                ->where('board_id', $request->board->_id)
+                ->where('deleted_at', null)
+                ->first(); 
+
+                foreach($each_field_data_value as $language_code => $each_language_code_field_data_value) {
+
+                    foreach($each_language_code_field_data_value as $each_field_key => $each_field_key_value) {
+
+                        $each_field_key_data = FieldKey::where('component_id', $component->_id)
+                            ->where('field_key_name', $each_field_key)
+                            ->where('deleted_at', null)
+                            ->first();
+
+                        if($each_field_key_data['field_type_name'] == 'media' && !empty($each_field_key_value)) {
+                            $media_list = [];
+
+                            foreach ($each_field_key_value as $each_field_value) {
+                                //logger($each_field_value);
+                                $media = MediaGallery::where('_id', $each_field_value)
+                                    ->where('deleted_at', null)
+                                    ->first(['media_name', 'media_url']);
+
+                                $encode_media = json_encode($media);
+                                $decode_media =json_decode($encode_media);
+
+                                if (!$decode_media)
+                                    continue;
+                            
+                                $media_list[] = $decode_media;
+                            } 
+                            $each_field_key_value = $media_list;
+                            $each_language_code_field_data_value[$each_field_key_data['field_key_name']] = $each_field_key_value;
+                        }
+                    }                    
+                    $each_field_data_value[$language_code] = $each_language_code_field_data_value;
                 }
+
+                    if(empty($check_language_code))
+                    {
+                        $output_each_field_data[$each_field_data_name] = $each_field_data_value;
+
+                    }
+                    else
+                    {
+                        $output_each_field_data[$each_field_data_name] = [$check_language_code => isset($each_field_data_value[$check_language_code]) ? $each_field_data_value[$check_language_code] : []];
+                    }
+
             }
             $field_data_language[] = $output_each_field_data;
         }

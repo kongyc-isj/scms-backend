@@ -94,9 +94,11 @@ class MediaController extends Controller
                 if($result)
                 {
                     //prepare media url to store in db
-                    $data[] = ['media_url'   => Storage::disk('s3')->url($media_url)];
+                    $media_data->media_url = Storage::disk('s3')->url($media_url);
 
-                    $media_data->update($data);
+                    if (!$media_data->save()) {
+                        return response()->json(['message' => 'Media updated unsuccessfully'], 422);
+                    }
 
                     return response()->json(['message' => 'Media updated successfully'], 200);
                 }
@@ -227,10 +229,11 @@ class MediaController extends Controller
 
                     if($result)
                     {
-                        //prepare media url to store in db
-                        $data[] = ['media_url'   => Storage::disk('s3')->url($media_url)];
+                        $media_data->media_url = Storage::disk('s3')->url($media_url);
 
-                        $media_data->update($data);
+                        if (!$media_data->save()) {
+                            return response()->json(['message' => 'Media updated unsuccessfully'], 422);
+                        }
 
                         return response()->json(['message' => 'Media updated successfully'], 200);
                     }
@@ -298,7 +301,7 @@ class MediaController extends Controller
             $request->validate([
                 'board_id'   => 'required|string',
                 'media_name' => 'required|string',
-                'file'       => 'required|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi,wmv|max:20000', // Example validation rule
+                'file'       => 'required|file|mimes:mp3,jpg,jpeg,png,gif,mp4,mov,avi,wmv|max:20000', // Example validation rule
             ]);
             $email      = $request->input('email');
             $file       = $request->file('file');
@@ -367,7 +370,7 @@ class MediaController extends Controller
         try{
             $request->validate([
                 'media_name' => 'required|string',
-                'file'       => 'required|file|mimes:jpeg,png,gif,mp4,mov,avi,wmv'
+                'file'       => 'required|file|mimes:mp3,jpg,jpeg,png,gif,mp4,mov,avi,wmv|max:20000', // Example validation rule
             ]);
             
             $data = $request->all();
