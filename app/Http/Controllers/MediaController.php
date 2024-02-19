@@ -63,7 +63,6 @@ class MediaController extends Controller
                     ->where('deleted_at', null)
                     ->get(['_id', 'media_name', 'media_url']); 
 
-                logger(222222);
 
                 return response()->json(['media' => $media_gallery, 'message' => 'Media read successfully'], 200);
             }
@@ -86,25 +85,41 @@ class MediaController extends Controller
                 if (!$media_data) {
                     return response()->json(['message' => 'Media not found'], 422);
                 }
-
-                $media_url = 'staging/media/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
-
-                $result    = Storage::disk('s3')->put($media_url, file_get_contents($data['file']), 'public');
-
-                if($result)
+            
+                if(isset($data['file']))
                 {
-                    //prepare media url to store in db
-                    $media_data->media_url = Storage::disk('s3')->url($media_url);
+
+                    $media_url = 'staging/media/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
+                    $result    = Storage::disk('s3')->put($media_url, file_get_contents($data['file']), 'public');
+
+
+                    if($result)
+                    {
+                        $media_data->media_url  = Storage::disk('s3')->url($media_url);
+                        $media_data->media_name = $data['media_name'];
+
+                        if (!$media_data->save()) {
+                            return response()->json(['message' => 'Media updated unsuccessfully'], 422);
+                        }
+
+                        return response()->json(['message' => 'Media updated successfully'], 200);
+                    }
+                    else
+                    {
+                        return response()->json(['message' => 'Failed to update media to server'], 422);
+                    }
+                }
+
+                else
+                {
+                    $media_data->media_name = $data['media_name'];
 
                     if (!$media_data->save()) {
                         return response()->json(['message' => 'Media updated unsuccessfully'], 422);
-                    }
+                    }  
 
                     return response()->json(['message' => 'Media updated successfully'], 200);
-                }
-                else
-                {
-                    return response()->json(['message' => 'Failed to update media to server'], 422);
+
                 }
             }    
             
@@ -223,24 +238,42 @@ class MediaController extends Controller
                         return response()->json(['message' => 'Media not found'], 422);
                     }
 
-                    $media_url = 'staging/media/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
-
-                    $result    = Storage::disk('s3')->put($media_url, file_get_contents($data['file']), 'public');
-
-                    if($result)
+                    if(isset($data['file']))
                     {
-                        $media_data->media_url = Storage::disk('s3')->url($media_url);
+                        $media_url = 'staging/media/' . $media_data->_id . '.' . $data['file']->getClientOriginalExtension();
+                        $result    = Storage::disk('s3')->put($media_url, file_get_contents($data['file']), 'public');
 
-                        if (!$media_data->save()) {
-                            return response()->json(['message' => 'Media updated unsuccessfully'], 422);
+
+                        if($result)
+                        {
+                            $media_data->media_url  = Storage::disk('s3')->url($media_url);
+                            $media_data->media_name = $data['media_name'];
+    
+                            if (!$media_data->save()) {
+                                return response()->json(['message' => 'Media updated unsuccessfully'], 422);
+                            }
+    
+                            return response()->json(['message' => 'Media updated successfully'], 200);
                         }
-
-                        return response()->json(['message' => 'Media updated successfully'], 200);
+                        else
+                        {
+                            return response()->json(['message' => 'Failed to update media to server'], 422);
+                        }
                     }
+
                     else
                     {
-                        return response()->json(['message' => 'Failed to update media to server'], 422);
+                        $media_data->media_name = $data['media_name'];
+    
+                        if (!$media_data->save()) {
+                            return response()->json(['message' => 'Media updated unsuccessfully'], 422);
+                        }  
+
+                        return response()->json(['message' => 'Media updated successfully'], 200);
+
                     }
+
+
                 } 
                 else 
                 {
@@ -301,14 +334,25 @@ class MediaController extends Controller
             $request->validate([
                 'board_id'   => 'required|string',
                 'media_name' => 'required|string',
-                'file'       => 'required|file|mimes:mp3,jpg,jpeg,png,gif,mp4,mov,avi,wmv|max:20000', // Example validation rule
+                'file'       => 'required|file|mimes:mp3,jpg,jpeg,png,gif,mp4,mov,avi|max:20000', // Example validation rule
             ]);
+            
             $email      = $request->input('email');
             $file       = $request->file('file');
             $board_id   = $request->input('board_id');
             $media_name = $request->input('media_name');
 
             $data       = $request->all();
+
+            $check_media = MediaGallery::where('media_name', $media_name)
+                ->where('board_id', $board_id)
+                ->where('deleted_at', null)
+                ->first();  
+
+            if (!empty($check_media)) {
+                logger()->info($check_media);
+                return response()->json(['message' => 'Media name cannot duplicate'], 422);
+            }
 
             //create new data to media gallery table 3
 
@@ -370,7 +414,7 @@ class MediaController extends Controller
         try{
             $request->validate([
                 'media_name' => 'required|string',
-                'file'       => 'required|file|mimes:mp3,jpg,jpeg,png,gif,mp4,mov,avi,wmv|max:20000', // Example validation rule
+                'file'       => 'nullable|file|mimes:mp3,jpg,jpeg,png,gif,mp4,mov,avi|max:20000', // Example validation rule
             ]);
             
             $data = $request->all();
@@ -382,6 +426,16 @@ class MediaController extends Controller
 
             if(empty($media_data)){
                 return response()->json(['message' => 'Media not found'], 422);
+            }
+
+            $check_media = MediaGallery::where('media_name', $data['media_name'])
+                ->where('board_id', $media_data['board_id'])
+                ->where('_id', '!=', $id) // Use '!=' to check not equal
+                ->where('deleted_at', null)
+                ->first(); 
+
+            if (!empty($check_media)) {
+                return response()->json(['message' => 'Media name cannot be duplicate'], 422);
             }
 
             $data['updated_at'] = Carbon::now()->format('Y-m-d H:i:s');

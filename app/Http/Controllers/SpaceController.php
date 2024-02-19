@@ -97,6 +97,7 @@ class SpaceController extends Controller
             // Merge own created space list
             foreach ($owner_space as $item) {
                 $id = $item['_id'];
+                $item['is_owner'] = 1;
                 if (!isset($merged[$id])) {
                     $merged[$id] = $item;
                 }
@@ -104,6 +105,7 @@ class SpaceController extends Controller
 
             foreach ($space_from_owner_board as $item) {
                 $id = $item['_id'];
+                $item['is_owner'] = 1;
                 if (!isset($merged[$id])) {
                     $merged[$id] = $item;
                 }
@@ -112,6 +114,7 @@ class SpaceController extends Controller
             // Merge get invited share boards' space list
             foreach ($space_from_share_board as $item) {
                 $id = $item['_id'];
+                $item['is_owner'] = 0;
                 if (!isset($merged[$id])) {
                     $merged[$id] = $item;
                 }

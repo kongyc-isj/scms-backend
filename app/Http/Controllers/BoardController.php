@@ -261,6 +261,15 @@ class BoardController extends Controller
             $share_user_array  = $request->input('board_shared_user');
             $board_share_users = $board['board_shared_user'];
 
+            $unique_emails = [];
+            foreach ($share_user_array as $index => $item) {
+                $email = $item['board_shared_user_email'];
+                if (in_array($email, $unique_emails)) {
+                    return response()->json(['message' => "Duplicate email $email found"], 422);
+                }
+                $unique_emails[] = $email;
+            }
+
             // Convert db_share_user to associative array for easier lookup
             $board_share_users_assoc = array_column($board_share_users, null, 'board_shared_user_email');
                         
@@ -303,7 +312,9 @@ class BoardController extends Controller
         {
             $email = $request->input('email');
 
-            $board = Board::find($id);
+            $board  = Board::where('_id', $id)
+                ->where('deleted_at', null)
+                ->first();
 
             if (!$board) {
                 return response()->json(['message' => 'Board not found'], 422);

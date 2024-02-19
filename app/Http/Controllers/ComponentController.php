@@ -104,7 +104,8 @@ class ComponentController extends Controller
             {
                 if ($sharedUser['board_shared_user_read_access'] == 1) 
                 {
-                    $component = Component::where('board_id', $board_id)
+                    $component = Component::where('board_id', $shared_board->_id)
+                        ->where('deleted_at', null)
                         ->get(['_id', 'component_name', 'component_description']);                    
                     return response()->json(['component' => $component, 'message' => 'Component read successfully'], 200);
                 } 
@@ -289,7 +290,7 @@ class ComponentController extends Controller
             }
 
             $check_component = Component::where('component_name', $data['component_name'])
-                ->where('board_id', $component['space_id'])
+                ->where('board_id', $component['board_id'])
                 ->where('_id', '!=', $component['_id']) // Use '!=' to check not equal
                 ->where('deleted_at', null)
                 ->first(); 

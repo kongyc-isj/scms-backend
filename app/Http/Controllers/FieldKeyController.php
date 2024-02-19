@@ -48,7 +48,7 @@ class FieldKeyController extends Controller
             {
                 $field_key = FieldKey::create($data); 
 
-                $this->insert_field_key_to_field_data($field_key, $board, $data);
+                $this->insert_field_key_to_field_data($field_key, $owner_board, $data);
 
                 return response()->json(['message' => 'Field Key created successfully'], 200);
             }
@@ -72,9 +72,35 @@ class FieldKeyController extends Controller
             {
                 $field_key = FieldKey::where('_id', $field_key_id)
                     ->where('deleted_at', null)
-                    ->first();          
+                    ->first(); 
+
+                if(empty($field_key))
+                    return response()->json(['message' => 'Field key no found'], 404); 
+
+                $ori_field_key_name = $field_key->field_key_name;
+                $new_field_key_name = $data['field_key_name'];
 
                 $field_key->update($data);
+
+                $field_data = FieldData::where('component_id', $field_key->component_id)
+                    ->where('deleted_at', null)
+                    ->first();   
+
+                $field_data_array = $field_data->field_key_value;
+
+                // Rename the key if it exists
+                foreach ($field_data_array as $lang => &$data) {
+
+                        if (array_key_exists($ori_field_key_name, $data)) {    
+                            $data[$new_field_key_name] = $data[$ori_field_key_name];
+                            unset($data[$ori_field_key_name]);
+                        }
+                }
+            
+                // Update the field key value in the database
+                $field_data->field_key_value = $field_data_array;
+
+                $field_data->save();
 
                 return response()->json(['field_key' => $field_key, 'message' => 'Field Key updated successfully'], 200);
             }    
@@ -108,7 +134,7 @@ class FieldKeyController extends Controller
                 if ($sharedUser['board_shared_user_create_access'] == 1) 
                 {
                     $field_key = FieldKey::create($data); 
-                    $this->insert_field_key_to_field_data($field_key, $board, $data);
+                    $this->insert_field_key_to_field_data($field_key, $shared_board, $data);
 
                     return response()->json(['message' => 'Field Key created successfully'], 200);
                 } 
@@ -123,7 +149,7 @@ class FieldKeyController extends Controller
                 {
                     $field_key = FieldKey::where('component_id', $component_id)
                     ->where('deleted_at', null)
-                    ->get(['_id', 'field_key_name', 'field_key_description']); 
+                    ->get(['_id', 'field_key_name', 'field_key_description', 'field_type_name']); 
 
                     return response()->json(['field_key' => $field_key, 'message' => 'Field Key read successfully'], 200);
                 } 
@@ -152,11 +178,37 @@ class FieldKeyController extends Controller
                 if ($sharedUser['board_shared_user_update_access'] == 1) {
 
                     $field_key = FieldKey::where('_id', $field_key_id)
-                    ->where('deleted_at', null)
-                    ->first();          
+                        ->where('deleted_at', null)
+                        ->first();    
+
+                    if(empty($field_key))
+                        return response()->json(['message' => 'Field key no found'], 404); 
+
+                    $ori_field_key_name = $field_key->field_key_name;
+                    $new_field_key_name = $data['field_key_name'];
 
                     $field_key->update($data);
 
+                    $field_data = FieldData::where('component_id', $field_key->component_id)
+                        ->where('deleted_at', null)
+                        ->first();   
+
+                    $field_data_array = $field_data->field_key_value;
+
+                    // Rename the key if it exists
+                    foreach ($field_data_array as $lang => &$data) {
+
+                            if (array_key_exists($ori_field_key_name, $data)) {    
+                                $data[$new_field_key_name] = $data[$ori_field_key_name];
+                                unset($data[$ori_field_key_name]);
+                            }
+                    }
+        
+                    // Update the field key value in the database
+                    $field_data->field_key_value = $field_data_array;
+
+                    $field_data->save();
+                    
                     return response()->json(['field_key' => $field_key, 'message' => 'Field Key updated successfully'], 200);
                 } 
                 else 
@@ -173,6 +225,8 @@ class FieldKeyController extends Controller
                         ->first();              
 
                     $field_key->update($data);
+
+                    $this->delete_field_key_from_field_data($field_key);
 
                     return response()->json(['field_key' => $field_key, 'message' => 'Field Key deleted successfully'], 200);
                 } 
@@ -389,6 +443,27 @@ class FieldKeyController extends Controller
             ];
         }
 
+        if($data['field_type_name'] == 'datetime')
+        {
+            $field_key_format = [
+                $field_key->field_key_name => '01/01/2024, 00:00:00'
+            ];
+        }
+
+        if($data['field_type_name'] == 'date')
+        {
+            $field_key_format = [
+                $field_key->field_key_name => '01/01/2024'
+            ];
+        }
+
+        if($data['field_type_name'] == 'time')
+        {
+            $field_key_format = [
+                $field_key->field_key_name => '00:00:00'
+            ];
+        }
+
         if (empty($field_data)) {
 
             $language_code          = $board->board_default_language_code;
@@ -424,8 +499,13 @@ class FieldKeyController extends Controller
                     $field_key_value_formats[] = $field_key_value_format;
                 }
             }
-
-            $data['field_key_value'] = array_merge(...$field_key_value_formats);
+            if(empty($field_key_value_formats)){
+                $data['field_key_value'] = $field_key_value_list;
+            }
+            else
+            {
+                $data['field_key_value'] = array_merge(...$field_key_value_formats);
+            }
 
             $field_data->update($data);
         }
@@ -454,8 +534,14 @@ class FieldKeyController extends Controller
                 ];
             }
         }
-        
-        $data['field_key_value'] = array_merge(...$field_key_value_formats);
+        if(empty($field_key_value_formats)){
+            $data['field_key_value'] = $field_key_value_list;
+        }
+        else
+        {
+            $data['field_key_value'] = array_merge(...$field_key_value_formats);
+        }
+
         $field_data->update($data);
     
     }

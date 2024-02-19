@@ -103,6 +103,12 @@ class FetchController extends Controller
                             ->where('deleted_at', null)
                             ->first();
 
+                        if(!$each_field_key_data)
+                        {
+                            unset($each_language_code_field_data_value[$each_field_key]);
+                            continue;
+                        }
+
                         if($each_field_key_data['field_type_name'] == 'media' && !empty($each_field_key_value)) {
                             $media_list = [];
 

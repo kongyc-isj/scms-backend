@@ -35,8 +35,8 @@ class FieldDataController extends Controller
         }
 
         $field_data = FieldData::where('component_id', $component->id)
-        ->where('deleted_at', null)
-        ->first(); 
+            ->where('deleted_at', null)
+            ->first(); 
 
         if (!$field_data) {
             return response()->json(['field_data' => [], 'message' => 'Field Data not found'], 200);
@@ -73,11 +73,11 @@ class FieldDataController extends Controller
 
                 //language no exist and need to auto translate
                 if (!array_key_exists($language_code, $field_key_value_list)) {
-                    $data = $field_key_value_list[$board->board_default_language_code];
+                    $data = $field_key_value_list[$owner_board->board_default_language_code];
                 }
                 //language existed but need to translate
                 elseif (array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 1){
-                    $data = $field_key_value_list[$board->board_default_language_code];
+                    $data = $field_key_value_list[$language_code];
                 }
                 //language existed and no need to translate
                 else{
@@ -108,7 +108,7 @@ class FieldDataController extends Controller
                                 $field_value = $media_list;
                             }
 
-                            if($each_field_key['field_type_name'] == 'long_text' || $each_field_key['field_type_name'] == 'short_text' && !empty($field_value) && $owner_board->board_default_language_code != $language_code){
+                            if($each_field_key['field_type_name'] == 'long_text' || $each_field_key['field_type_name'] == 'short_text' && $owner_board->board_default_language_code != $language_code){
                             
                                 //do for auto translate for not existed language
                                 if(!array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 0)
@@ -116,16 +116,34 @@ class FieldDataController extends Controller
                                     $tr = new GoogleTranslate(); 
                                     $tr->setSource($owner_board->board_default_language_code); 
                                     $tr->setTarget($language_code); 
-                                    $field_value = $tr->translate($field_value);  
+
+                                    if (!empty($field_value))
+                                    {
+                                        $field_value = $tr->translate($field_value);  
+                                    }
+                                    else
+                                    {
+                                        $field_value = "";
+                                    }
                                 }
 
                                 //do for manual translate button for existed language
                                 if(array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 1)
                                 {
+                                    $default_field_data = $field_key_value_list[$owner_board->board_default_language_code];
+
                                     $tr = new GoogleTranslate(); 
                                     $tr->setSource($owner_board->board_default_language_code); 
                                     $tr->setTarget($language_code); 
-                                    $field_value = $tr->translate($field_value);
+
+                                    if (!empty($default_field_data[$field_key_name]))
+                                    {
+                                        $field_value = $tr->translate($default_field_data[$field_key_name]);  
+                                    }
+                                    else
+                                    {
+                                        $field_value = "";
+                                    }
                                 }
                             }
 
@@ -140,12 +158,11 @@ class FieldDataController extends Controller
                         }
                     }
                 }
-                return response()->json(['board_default_language'=>$board->board_default_language_code, 'field_data' => $mapped_data, 'message' => 'Field data show successfully'], 200);
+                return response()->json(['board_default_language'=>$owner_board->board_default_language_code, 'field_data' => $mapped_data, 'message' => 'Field data show successfully'], 200);
             }
             elseif($method == "update")
             {
                 $validate_field_key = $this->validate_field_key_id($field_key->toArray(), $request['field_key_value']);
-
                 if(!empty($validate_field_key))
                     return $validate_field_key;
     
@@ -191,7 +208,33 @@ class FieldDataController extends Controller
                 $field_data->update($data);
     
                 return response()->json(['message' => 'Field data updated successfully'], 200);
-            }               
+            }     
+            elseif($method == "field_data_language")
+            {
+                $component = Component::where('_id', $request['component_id'])
+                ->where('deleted_at', null)
+                ->first();   
+    
+                if (!$component) {
+                    return response()->json(['message' => 'Component not found'], 422);
+                }
+    
+                $field_data = FieldData::where('component_id', $component->id)
+                ->where('deleted_at', null)
+                ->first(); 
+    
+                if (!$field_data) {
+                    return response()->json(['message' => 'Component not found'], 422);
+                }
+    
+                $language_list  = $field_data['field_key_value']; //->toArray();         
+                $language_array = (array_keys($language_list));   
+    
+                $check_in_array = in_array($request['language_code'], $language_array);
+    
+                return response()->json(['language_code_exist' => $check_in_array, 'message' => 'Field data language checked successfully'], 200);
+                    
+            }          
             else
             {
                 return response()->json(['message' => 'method not found'], 422);
@@ -212,11 +255,11 @@ class FieldDataController extends Controller
 
                     //language no exist and need to auto translate
                     if (!array_key_exists($language_code, $field_key_value_list)) {
-                        $data = $field_key_value_list[$board->board_default_language_code];
+                        $data = $field_key_value_list[$shared_board->board_default_language_code];
                     }
                     //language existed but need to translate
                     elseif (array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 1){
-                        $data = $field_key_value_list[$board->board_default_language_code];
+                        $data = $field_key_value_list[$language_code];
                     }
                     //language existed and no need to translate
                     else{
@@ -248,13 +291,13 @@ class FieldDataController extends Controller
                                     $field_value = $media_list;    
                                 }
 
-                                if($each_field_key['field_type_name'] == 'long_text' || $each_field_key['field_type_name'] == 'short_text' && !empty($field_value) && $owner_board->board_default_language_code != $language_code){
+                                if($each_field_key['field_type_name'] == 'long_text' || $each_field_key['field_type_name'] == 'short_text'  && $shared_board->board_default_language_code != $language_code){
                             
                                     //do for auto translate for not existed language
                                     if(!array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 0)
                                     {
                                         $tr = new GoogleTranslate(); 
-                                        $tr->setSource($owner_board->board_default_language_code); 
+                                        $tr->setSource($shared_board->board_default_language_code); 
                                         $tr->setTarget($language_code); 
                                         $field_value = $tr->translate($field_value);  
                                     }
@@ -262,10 +305,11 @@ class FieldDataController extends Controller
                                     //do for manual translate button for existed language
                                     if(array_key_exists($language_code, $field_key_value_list) && $request['translate_existed_data'] == 1)
                                     {
+                                        $default_field_data = $field_key_value_list[$shared_board->board_default_language_code];
                                         $tr = new GoogleTranslate(); 
-                                        $tr->setSource($owner_board->board_default_language_code); 
+                                        $tr->setSource($shared_board->board_default_language_code); 
                                         $tr->setTarget($language_code); 
-                                        $field_value = $tr->translate($field_value);
+                                        $field_value = $tr->translate($default_field_data[$field_key_name]);
                                     }
                                 }
 
@@ -280,7 +324,7 @@ class FieldDataController extends Controller
                             }
                         }
                     }
-                    return response()->json(['field_data' => $mapped_data, 'message' => 'Field data show successfully'], 200);
+                    return response()->json(['board_default_language'=>$shared_board->board_default_language_code, 'field_data' => $mapped_data, 'message' => 'Field data show successfully'], 200);
                 } 
                 else 
                 {
@@ -333,7 +377,6 @@ class FieldDataController extends Controller
                         $merge = array_merge_recursive($field_key_value_list, $field_key_value_format);
                         $data['field_key_value'] = $merge;    
                     }
-        
                     // Update the data
                     $field_data->update($data);
         
@@ -344,6 +387,32 @@ class FieldDataController extends Controller
                     return response()->json(['message' => 'Permission denied'], 422);
                 }
             }
+            elseif($method == "field_data_language")
+            {
+                $component = Component::where('_id', $request['component_id'])
+                ->where('deleted_at', null)
+                ->first();   
+    
+                if (!$component) {
+                    return response()->json(['message' => 'Component not found'], 422);
+                }
+    
+                $field_data = FieldData::where('component_id', $component->id)
+                ->where('deleted_at', null)
+                ->first(); 
+    
+                if (!$field_data) {
+                    return response()->json(['message' => 'Component not found'], 422);
+                }
+    
+                $language_list  = $field_data['field_key_value']; //->toArray();         
+                $language_array = (array_keys($language_list));   
+    
+                $check_in_array = in_array($request['language_code'], $language_array);
+    
+                return response()->json(['language_code_exist' => $check_in_array, 'message' => 'Field data language checked successfully'], 200);
+                    
+            }  
             else
             {
                 return response()->json(['message' => 'method not found'], 422);
@@ -360,7 +429,7 @@ class FieldDataController extends Controller
         $request->validate([
             'component_id'           => 'required|string',
             'language_code'          => 'nullable|string',
-            'translate_existed_data' => 'optional|string'
+            'translate_existed_data' => 'required|string'
         ]);
 
         return $this->field_data_permission($request['component_id'], $request['email'], $request, 'show');
@@ -417,28 +486,7 @@ class FieldDataController extends Controller
                 'language_code'   => 'required|string'
             ]);
 
-            $component = Component::where('_id', $request['component_id'])
-            ->where('deleted_at', null)
-            ->first();   
-
-            if (!$component) {
-                return response()->json(['message' => 'Component not found'], 422);
-            }
-
-            $field_data = FieldData::where('component_id', $component->id)
-            ->where('deleted_at', null)
-            ->first(); 
-
-            if (!$field_data) {
-                return response()->json(['message' => 'Component not found'], 422);
-            }
-
-            $language_list  = $field_data['field_key_value']; //->toArray();         
-            $language_array = (array_keys($language_list));   
-
-            $check_in_array = in_array($request['language_code'], $language_array);
-
-            return response()->json(['language_code_exist' => $check_in_array, 'message' => 'Field data language checked successfully'], 200);
+            return $this->field_data_permission($request['component_id'], $request['email'], $request, 'field_data_language');
 
         }
         catch (\Exception $e) {
@@ -536,30 +584,30 @@ class FieldDataController extends Controller
                         break;
 
                     case 'decimal':
-                        $min_value = pow(10, -129);
-                        $max_value = pow(10, 125);
+                        $min_value = -9007199254740.99;
+                        $max_value = 9007199254740.99;
                         $pattern = '/^-?\d+(\.\d{1,2})?$/';
 
                         if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value || !preg_match($pattern, $field_value)) {
-                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid decimal within the range of 10^(-129) to 10^(125)."], 422);
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid decimal within the range of $min_value to $max_value."], 422);
                         }
                         break;
 
                     case 'big_integer':
-                        $max_value = 9223372036854775807;
-                        $min_value = -9223372036854775808;
-                    
-                        if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value || !filter_var($field_value, FILTER_VALIDATE_INT)) {
-                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid 63-bit big integer."], 422);
+                        $max_value =  9007199254740991;
+                        $min_value = -9007199254740991;
+
+                        if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value) {// || !filter_var($field_value, FILTER_VALIDATE_INT)) {
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid big integer within the range of $min_value to $max_value."], 422);
                         }
                         break;
 
                     case 'float':
-                        $min_value = 3.4E-38;
-                        $max_value = 3.4E+38;
+                        $min_value = -90071992547.9999;
+                        $max_value = 90071992547.9999;
                     
                         if (!is_numeric($field_value) || $field_value < $min_value || $field_value > $max_value) {
-                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid float within the range of approximately 3.4E-38 to 3.4E+38."], 422);
+                            return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid float within the range of $min_value to $max_value."], 422);
                         }
                         break;
 
@@ -596,7 +644,6 @@ class FieldDataController extends Controller
                     case 'media':
 
                         foreach ($field_value as $each_field_value){
-                            logger($each_field_value);
                             $media = MediaGallery::where('_id', $each_field_value)
                             ->where('deleted_at', null)
                             ->first();
@@ -623,10 +670,12 @@ class FieldDataController extends Controller
                      
                         // If $field_value is an array, encode it to JSON
                         if (is_array($field_value)) {
-                            $field_value = json_encode($field_value);
+                            $field_value  = json_encode($field_value);
+                            $decoded_json = json_decode($field_value);
                         }
-     
-                        $decoded_json = json_decode($field_value);
+                        else {
+                           $decoded_json  = json_decode($field_value);
+                        }
                      
                         if ($decoded_json === null && json_last_error() !== JSON_ERROR_NONE) {
                             return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid JSON string or array."], 422);
