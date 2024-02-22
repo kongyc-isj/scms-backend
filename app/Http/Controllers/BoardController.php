@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use App\Models\Space;
 use App\Models\Board;
 use App\Models\Language;
+use App\Models\AuditLog;
 use Ramsey\Uuid\Uuid;
 
 class BoardController extends Controller
@@ -212,6 +213,8 @@ class BoardController extends Controller
             }
 
             $board = Board::create($data);
+            
+            AuditLog::logAction($board->id, $email, 'create_board', 'Board created with name: ' . $board->board_name);
 
             return response()->json(['message' => 'Board created successfully'], 200);
 
@@ -234,6 +237,8 @@ class BoardController extends Controller
 
             $email = $request->input('email');
             $data  = $request->only(['board_name', 'board_description']);
+
+            $check_email = $email;
 
             $board  = Board::where('_id', $id)
             ->where('deleted_at', null)
@@ -298,6 +303,8 @@ class BoardController extends Controller
             $data['board_shared_user'] = $board_share_users_updated;
             $board->update($data);
 
+            AuditLog::logAction($board->id, $check_email, 'update_board', 'Board updated with name: ' . $board->board_name);
+            
             return response()->json(['message' => 'Board updated successfully'], 200);
         }
         catch (\Exception $e) {
@@ -327,6 +334,8 @@ class BoardController extends Controller
 
             $data['deleted_at'] = Carbon::now()->format('Y-m-d H:i:s');
             $board->update($data);
+
+            AuditLog::logAction($board->id, $email, 'delete_board', 'Board deleted with name: ' . $board->board_name);
 
             return response()->json(['message' => 'Board deleted successfully'], 200);
         }

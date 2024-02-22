@@ -11,6 +11,7 @@ use App\Http\Controllers\FieldTypeController;
 use App\Http\Controllers\FieldDataController;
 use App\Http\Controllers\FetchController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Middleware\ApiKeyAuth;
 use App\Http\Middleware\ValidateAccessToken;
 
@@ -66,6 +67,9 @@ Route::middleware(['api', 'validateAccessToken'])->group(function () {
     //Media CRUD
     Route::apiResource('media', MediaController::class);
     Route::post('/media/update_media/{id}', [MediaController::class, 'update_media']);
+
+    //AuditLog R
+    Route::get('/audit_log/{id}', [AuditLogController::class, 'show']);
 
 });
 

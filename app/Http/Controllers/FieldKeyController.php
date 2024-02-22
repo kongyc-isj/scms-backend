@@ -10,6 +10,7 @@ use App\Models\Board;
 use App\Models\FieldKey;
 use App\Models\FieldData;
 use App\Models\FieldType;
+use App\Models\AuditLog;
 
 class FieldKeyController extends Controller
 {
@@ -49,6 +50,8 @@ class FieldKeyController extends Controller
                 $field_key = FieldKey::create($data); 
 
                 $this->insert_field_key_to_field_data($field_key, $owner_board, $data);
+
+                AuditLog::logAction($owner_board->id, $email, 'create_field_key', 'Field key created with name: ' . $field_key->field_key_name);
 
                 return response()->json(['message' => 'Field Key created successfully'], 200);
             }
@@ -102,6 +105,8 @@ class FieldKeyController extends Controller
 
                 $field_data->save();
 
+                AuditLog::logAction($owner_board->id, $email, 'update_field_key', 'Field key updated with name: ' . $field_key->field_key_name);
+
                 return response()->json(['field_key' => $field_key, 'message' => 'Field Key updated successfully'], 200);
             }    
             elseif($method == "destroy")
@@ -113,6 +118,8 @@ class FieldKeyController extends Controller
                 $field_key->update($data);
 
                 $this->delete_field_key_from_field_data($field_key);
+
+                AuditLog::logAction($owner_board->id, $email, 'delete_field_key', 'Field key deleted with name: ' . $field_key->field_key_name);
 
                 return response()->json(['field_key' => $field_key, 'message' => 'Field Key deleted successfully'], 200);
             }            
@@ -135,6 +142,8 @@ class FieldKeyController extends Controller
                 {
                     $field_key = FieldKey::create($data); 
                     $this->insert_field_key_to_field_data($field_key, $shared_board, $data);
+
+                    AuditLog::logAction($shared_board->id, $email, 'create_field_key', 'Field key created with name: ' . $field_key->field_key_name);
 
                     return response()->json(['message' => 'Field Key created successfully'], 200);
                 } 
@@ -208,7 +217,9 @@ class FieldKeyController extends Controller
                     $field_data->field_key_value = $field_data_array;
 
                     $field_data->save();
-                    
+
+                    AuditLog::logAction($shared_board->id, $email, 'update_field_key', 'Field key updated with name: ' . $field_key->field_key_name);
+
                     return response()->json(['field_key' => $field_key, 'message' => 'Field Key updated successfully'], 200);
                 } 
                 else 
@@ -227,6 +238,8 @@ class FieldKeyController extends Controller
                     $field_key->update($data);
 
                     $this->delete_field_key_from_field_data($field_key);
+
+                    AuditLog::logAction($shared_board->id, $email, 'delete_field_key', 'Field key deleted with name: ' . $field_key->field_key_name);
 
                     return response()->json(['field_key' => $field_key, 'message' => 'Field Key deleted successfully'], 200);
                 } 

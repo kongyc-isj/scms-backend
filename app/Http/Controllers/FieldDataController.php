@@ -11,6 +11,7 @@ use App\Models\Board;
 use App\Models\Component;
 use App\Models\Language;
 use App\Models\MediaGallery;
+use App\Models\AuditLog;
 use DateTime;
 use Stichoza\GoogleTranslate\GoogleTranslate;
 
@@ -146,6 +147,9 @@ class FieldDataController extends Controller
                                     }
                                 }
                             }
+                            if($each_field_key['field_type_name'] == 'json') {               
+                                $field_value = json_encode($field_value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);  
+                            }
 
                             $each_map_data = [
                                 "field_key_id" => $each_field_key['_id'],
@@ -206,6 +210,8 @@ class FieldDataController extends Controller
     
                 // Update the data
                 $field_data->update($data);
+
+                AuditLog::logAction($owner_board->id, $email, 'update_field_data', 'Field data updated with component name: ' . $component->component_name);
     
                 return response()->json(['message' => 'Field data updated successfully'], 200);
             }     
@@ -299,7 +305,15 @@ class FieldDataController extends Controller
                                         $tr = new GoogleTranslate(); 
                                         $tr->setSource($shared_board->board_default_language_code); 
                                         $tr->setTarget($language_code); 
-                                        $field_value = $tr->translate($field_value);  
+
+                                        if (!empty($field_value))
+                                        {
+                                            $field_value = $tr->translate($field_value);  
+                                        }
+                                        else
+                                        {
+                                            $field_value = "";
+                                        }
                                     }
     
                                     //do for manual translate button for existed language
@@ -309,8 +323,19 @@ class FieldDataController extends Controller
                                         $tr = new GoogleTranslate(); 
                                         $tr->setSource($shared_board->board_default_language_code); 
                                         $tr->setTarget($language_code); 
-                                        $field_value = $tr->translate($default_field_data[$field_key_name]);
+
+                                        if (!empty($default_field_data[$field_key_name]))
+                                        {
+                                            $field_value = $tr->translate($default_field_data[$field_key_name]);  
+                                        }
+                                        else
+                                        {
+                                            $field_value = "";
+                                        }                                    
                                     }
+                                }
+                                if($each_field_key['field_type_name'] == 'json') {               
+                                    $field_value = json_encode($field_value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);  
                                 }
 
                                 $each_map_data = [
@@ -379,6 +404,8 @@ class FieldDataController extends Controller
                     }
                     // Update the data
                     $field_data->update($data);
+
+                    AuditLog::logAction($shared_board->id, $email, 'update_field_data', 'Field data updated with component name: ' . $component->component_name);
         
                     return response()->json(['message' => 'Field data updated successfully'], 200);
                 } 
@@ -680,7 +707,9 @@ class FieldDataController extends Controller
                         if ($decoded_json === null && json_last_error() !== JSON_ERROR_NONE) {
                             return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid JSON string or array."], 422);
                         }
-                        if (!is_string($field_value) || is_numeric($field_value)) {
+                        $check_is_encoded = preg_match('/[^\x20-\x7E]/', $field_value);
+
+                        if ($check_is_encoded == 1 || is_numeric($decoded_json)) {
                             return response()->json(['message' => "Invalid value for $field_type_name field type for field key name: $field_key_name. Please provide a valid JSON string or array."], 422);
                         }
                         break;

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\MediaGallery;
 use App\Models\Board;
 use Carbon\Carbon;
+use App\Models\AuditLog;
 
 class MediaController extends Controller
 {
@@ -48,7 +49,9 @@ class MediaController extends Controller
                     //prepare media url to store in db
                     $store_data = ['media_url'   => Storage::disk('s3')->url($media_url)];
                     $media_data->update($store_data);
-    
+
+                    AuditLog::logAction($owner_board->id, $email, 'create_media', 'Media created with name: ' . $media_data->media_name);
+
                     return response()->json(['message' => 'Media uploaded successfully'], 200);
                 }
                 else
@@ -102,6 +105,8 @@ class MediaController extends Controller
                             return response()->json(['message' => 'Media updated unsuccessfully'], 422);
                         }
 
+                        AuditLog::logAction($owner_board->id, $email, 'update_media', 'Media updated with name: ' . $media_data->media_name);
+
                         return response()->json(['message' => 'Media updated successfully'], 200);
                     }
                     else
@@ -127,7 +132,7 @@ class MediaController extends Controller
             {
                 $media_data = MediaGallery::where('board_id', $id)
                     ->where('deleted_at', null)
-                    ->get(['_id']);     
+                    ->get(['_id','media_name']);     
                 
                 if (empty($media_data)) {
                     return response()->json(['message' => 'Media data not found'], 422);
@@ -140,6 +145,11 @@ class MediaController extends Controller
                     ->whereNull('deleted_at')
                     ->pluck('_id')
                     ->toArray();
+                
+                $existing_media_name = MediaGallery::whereIn('_id', $media_id_to_delete)
+                    ->whereNull('deleted_at')
+                    ->pluck('media_name')
+                    ->toArray();
             
                 // Check if any requested IDs are not found
                 $missing_ids = array_diff($media_id_to_delete, $existing_media_ids);
@@ -148,8 +158,12 @@ class MediaController extends Controller
                     return response()->json(['error' => 'Media with the following IDs not found: ' . implode(', ', $missing_ids)], 404);
                 }
             
-                MediaGallery::whereIn('_id', $media_id_to_delete)->update(['deleted_at' => now()]);
-            
+                $media = MediaGallery::whereIn('_id', $media_id_to_delete)->update(['deleted_at' => now()]);
+
+                $media_name = implode(', ', $existing_media_name);
+
+                AuditLog::logAction($owner_board->id, $email, 'delete_media', 'Media deleted with name: ' . $media_name);
+
                 return response()->json(['message' => 'Media deleted successfully'], 200);
             }            
             else
@@ -183,7 +197,9 @@ class MediaController extends Controller
                         //prepare media url to store in db
                         $data = ['media_url'   => Storage::disk('s3')->url($media_url)];
                         $media_data->update($data);
-        
+                        
+                        AuditLog::logAction($shared_board->id, $email, 'create_media', 'Media created with name: ' . $media_data->media_name);
+
                         return response()->json(['message' => 'Media uploaded successfully'], 200);
                     }
                     else
@@ -252,7 +268,9 @@ class MediaController extends Controller
                             if (!$media_data->save()) {
                                 return response()->json(['message' => 'Media updated unsuccessfully'], 422);
                             }
-    
+
+                            AuditLog::logAction($shared_board->id, $email, 'update_media', 'Media updated with name: ' . $media_data->media_name);
+
                             return response()->json(['message' => 'Media updated successfully'], 200);
                         }
                         else
@@ -299,6 +317,11 @@ class MediaController extends Controller
                         ->whereNull('deleted_at')
                         ->pluck('_id')
                         ->toArray();
+                    
+                    $existing_media_name = MediaGallery::whereIn('_id', $media_id_to_delete)
+                        ->whereNull('deleted_at')
+                        ->pluck('media_name')
+                        ->toArray();
                 
                     // Check if any requested IDs are not found
                     $missing_ids = array_diff($media_id_to_delete, $existing_media_ids);
@@ -308,6 +331,12 @@ class MediaController extends Controller
                     }
                 
                     MediaGallery::whereIn('_id', $media_id_to_delete)->update(['deleted_at' => now()]);
+
+                    $media = MediaGallery::whereIn('_id', $media_id_to_delete)->update(['deleted_at' => now()]);
+
+                    $media_name = implode(', ', $existing_media_name);
+
+                    AuditLog::logAction($shared_board->id, $email, 'delete_media', 'Media deleted with name: ' . $media_name);
                 
                     return response()->json(['message' => 'Media deleted successfully'], 200);
                 } 

@@ -7,6 +7,7 @@ use Jenssegers\Mongodb\Eloquent\Model;
 use Carbon\Carbon;
 use App\Models\Component;
 use App\Models\Board;
+use App\Models\AuditLog;
 
 class ComponentController extends Controller
 {
@@ -36,6 +37,8 @@ class ComponentController extends Controller
             {
                 $component  = Component::create($data); 
 
+                AuditLog::logAction($owner_board->id, $email, 'create_component', 'Component created with name: ' . $component->component_name);
+                
                 return response()->json(['component' => $component, 'message' => 'Component created successfully'], 200);
             }
             elseif($method == "index")
@@ -62,6 +65,8 @@ class ComponentController extends Controller
 
                 $component->update($data);
 
+                AuditLog::logAction($owner_board->id, $email, 'update_component', 'Component updated with name: ' . $component->component_name);
+
                 return response()->json(['component' => $component, 'message' => 'Component updated successfully'], 200);
             }    
             elseif($method == "destroy")
@@ -71,6 +76,8 @@ class ComponentController extends Controller
                     ->first();              
 
                 $component->update($data);
+
+                AuditLog::logAction($owner_board->id, $email, 'delete_component', 'Component deleted with name: ' . $component->component_name);
 
                 return response()->json(['component' => $component, 'message' => 'Component deleted successfully'], 200);
             }            
@@ -93,6 +100,9 @@ class ComponentController extends Controller
                 if ($sharedUser['board_shared_user_create_access'] == 1) 
                 {
                     $component = Component::create($data);
+
+                    AuditLog::logAction($shared_board->id, $email, 'create_component', 'Component created with name: ' . $component->component_name);
+
                     return response()->json(['component' => $component, 'message' => 'Component created successfully'], 200);
                 } 
                 else 
@@ -139,6 +149,8 @@ class ComponentController extends Controller
 
                     $component->update($data);
 
+                    AuditLog::logAction($shared_board->id, $email, 'update_component', 'Component updated with name: ' . $component->component_name);
+
                     return response()->json(['component' => $component, 'message' => 'Component updated successfully'], 200);
                 } 
                 else 
@@ -155,6 +167,8 @@ class ComponentController extends Controller
                         ->first();          
 
                     $component->update($data);
+
+                    AuditLog::logAction($shared_board->id, $email, 'delete_component', 'Component deleted with name: ' . $component->component_name);
 
                     return response()->json(['component' => $component, 'message' => 'Component deleted successfully'], 200);
                 } 
